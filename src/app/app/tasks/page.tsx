@@ -5,7 +5,7 @@ import { TasksKanban } from "@/components/tasks/tasks-kanban";
 
 export default function TasksPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 p-6">
       {/* Page Header */}
       <TasksHeader />
       

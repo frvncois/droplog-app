@@ -5,7 +5,7 @@ import { ProjectOverview } from "./project-overview";
 import { ProjectTasksList } from "./project-tasks-list";
 import { ProjectAssetsList } from "./project-assets-list";
 import { ProjectContentList } from "./project-content-list";
-import { ProjectTeam } from "./project-team";
+import { ProjectTeamList } from "./project-team-list";
 import { ProjectDocumentation } from '@/components/projects/project-documentation'
 import { ProjectSettings } from "./project-settings";
 import { 
@@ -64,23 +64,23 @@ export function ProjectTabs({ project }: ProjectTabsProps) {
         <ProjectTasksList project={project} />
       </TabsContent>
 
-      <TabsContent value="assets" className="mt-6">
+      <TabsContent value="assets">
         <ProjectAssetsList project={project} />
       </TabsContent>
 
-      <TabsContent value="content" className="mt-6">
+      <TabsContent value="content">
         <ProjectContentList project={project} />
       </TabsContent>
 
-      <TabsContent value="team" className="mt-6">
-        <ProjectTeam project={project} />
+      <TabsContent value="team">
+        <ProjectTeamList project={project} />
       </TabsContent>
 
       <TabsContent value="documentation">
         <ProjectDocumentation projectId={project.id} />
       </TabsContent>
 
-      <TabsContent value="settings" className="mt-6">
+      <TabsContent value="settings">
         <ProjectSettings project={project} />
       </TabsContent>
     </Tabs>

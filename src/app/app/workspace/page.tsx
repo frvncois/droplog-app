@@ -40,7 +40,7 @@ import {
 
 export default function WorkspacePage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 p-6">
       {/* Page Header */}
       <div className="flex items-start justify-between">
           <div className="space-y-0">

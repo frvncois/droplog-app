@@ -4,7 +4,7 @@ import { ProjectsStats } from "@/components/projects/projects-stats";
 
 export default function ProjectsPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 p-6">
       {/* Page Header */}
       <ProjectsHeader />
       

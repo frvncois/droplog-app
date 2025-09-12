@@ -17,7 +17,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Project Header */}
       <ProjectHeader project={project} />
       
