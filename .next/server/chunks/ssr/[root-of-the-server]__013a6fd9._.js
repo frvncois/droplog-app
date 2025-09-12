@@ -2231,6 +2231,8 @@ __turbopack_context__.s([
     ()=>assets,
     "content",
     ()=>content,
+    "faqs",
+    ()=>faqs,
     "getActiveProjects",
     ()=>getActiveProjects,
     "getAssetsByProjectId",
@@ -2247,12 +2249,18 @@ __turbopack_context__.s([
     ()=>getTasksByStatus,
     "getTeamMemberById",
     ()=>getTeamMemberById,
+    "helpArticles",
+    ()=>helpArticles,
     "projects",
     ()=>projects,
+    "supportTeam",
+    ()=>supportTeam,
     "tasks",
     ()=>tasks,
     "team",
-    ()=>team
+    ()=>team,
+    "videoTutorials",
+    ()=>videoTutorials
 ]);
 const projects = [
     {
@@ -2518,6 +2526,236 @@ const team = [
         joinedAt: "2025-01-01T08:00:00Z"
     }
 ];
+const helpArticles = [
+    {
+        id: "h1",
+        title: "Getting Started with Droplog",
+        description: "Learn the basics of project management with Droplog in under 10 minutes",
+        category: "getting-started",
+        tags: [
+            "basics",
+            "onboarding",
+            "tutorial"
+        ],
+        rating: 4.8,
+        readTime: "5 min read",
+        updatedAt: "2 days ago"
+    },
+    {
+        id: "h2",
+        title: "Creating Your First Project",
+        description: "Step-by-step guide to setting up a new project and inviting team members",
+        category: "projects",
+        tags: [
+            "project",
+            "setup",
+            "collaboration"
+        ],
+        rating: 4.9,
+        readTime: "8 min read",
+        updatedAt: "1 week ago"
+    },
+    {
+        id: "h3",
+        title: "Task Management Best Practices",
+        description: "Tips for organizing tasks, setting priorities, and tracking progress effectively",
+        category: "tasks",
+        tags: [
+            "productivity",
+            "workflow",
+            "organization"
+        ],
+        rating: 4.7,
+        readTime: "12 min read",
+        updatedAt: "3 days ago"
+    },
+    {
+        id: "h4",
+        title: "Team Collaboration Features",
+        description: "How to use comments, mentions, and notifications to keep your team in sync",
+        category: "team",
+        tags: [
+            "collaboration",
+            "communication",
+            "notifications"
+        ],
+        rating: 4.6,
+        readTime: "7 min read",
+        updatedAt: "5 days ago"
+    },
+    {
+        id: "h5",
+        title: "Integrating with Third-Party Tools",
+        description: "Connect Droplog with Slack, Google Drive, and other popular productivity tools",
+        category: "integrations",
+        tags: [
+            "integrations",
+            "automation",
+            "api"
+        ],
+        rating: 4.5,
+        readTime: "15 min read",
+        updatedAt: "1 week ago"
+    },
+    {
+        id: "h6",
+        title: "Troubleshooting Common Issues",
+        description: "Solutions to frequently encountered problems and error messages",
+        category: "troubleshooting",
+        tags: [
+            "troubleshooting",
+            "errors",
+            "support"
+        ],
+        rating: 4.4,
+        readTime: "10 min read",
+        updatedAt: "4 days ago"
+    }
+];
+const videoTutorials = [
+    {
+        id: "v1",
+        title: "Droplog Overview - Complete Walkthrough",
+        description: "A comprehensive tour of all Droplog features and capabilities",
+        duration: "12:34",
+        views: "2.1k",
+        publishedAt: "1 week ago",
+        tags: [
+            "overview",
+            "features",
+            "demo"
+        ]
+    },
+    {
+        id: "v2",
+        title: "Project Setup and Configuration",
+        description: "Learn how to create and configure projects for maximum efficiency",
+        duration: "8:45",
+        views: "1.8k",
+        publishedAt: "3 days ago",
+        tags: [
+            "projects",
+            "setup",
+            "configuration"
+        ]
+    },
+    {
+        id: "v3",
+        title: "Advanced Task Management",
+        description: "Master task dependencies, custom fields, and automation rules",
+        duration: "15:22",
+        views: "956",
+        publishedAt: "5 days ago",
+        tags: [
+            "tasks",
+            "advanced",
+            "automation"
+        ]
+    },
+    {
+        id: "v4",
+        title: "Team Onboarding Best Practices",
+        description: "How to effectively onboard new team members and set permissions",
+        duration: "9:18",
+        views: "1.3k",
+        publishedAt: "2 weeks ago",
+        tags: [
+            "team",
+            "onboarding",
+            "permissions"
+        ]
+    }
+];
+const faqs = [
+    {
+        id: "faq1",
+        category: "getting-started",
+        question: "How do I create my first project?",
+        answer: "To create your first project, click the 'New Project' button in the top navigation, fill in the project details, and invite your team members. You can then start adding tasks and organizing your workflow.",
+        relatedArticles: [
+            "Creating Your First Project",
+            "Team Collaboration Features"
+        ]
+    },
+    {
+        id: "faq2",
+        category: "tasks",
+        question: "Can I set task dependencies?",
+        answer: "Yes, Droplog supports task dependencies. You can set dependencies when creating or editing a task. Dependent tasks will be automatically updated when their prerequisites are completed.",
+        relatedArticles: [
+            "Advanced Task Management",
+            "Task Management Best Practices"
+        ]
+    },
+    {
+        id: "faq3",
+        category: "team",
+        question: "How do I manage team permissions?",
+        answer: "Team permissions can be managed in the project settings. You can assign roles like Admin, Member, or Viewer to control what actions each team member can perform.",
+        relatedArticles: [
+            "Team Collaboration Features",
+            "Project Setup and Configuration"
+        ]
+    },
+    {
+        id: "faq4",
+        category: "integrations",
+        question: "Which third-party tools does Droplog integrate with?",
+        answer: "Droplog integrates with popular tools like Slack, Google Drive, Trello, GitHub, and many others. You can find the full list and setup instructions in the Integrations section.",
+        relatedArticles: [
+            "Integrating with Third-Party Tools"
+        ]
+    },
+    {
+        id: "faq5",
+        category: "troubleshooting",
+        question: "Why can't I see my project?",
+        answer: "If you can't see your project, check if you have the proper permissions or if the project has been archived. Contact your project admin or our support team if the issue persists.",
+        relatedArticles: [
+            "Troubleshooting Common Issues",
+            "Team Collaboration Features"
+        ]
+    },
+    {
+        id: "faq6",
+        category: "projects",
+        question: "How do I archive a completed project?",
+        answer: "To archive a project, go to Project Settings and click 'Archive Project'. Archived projects can be restored later if needed and won't appear in your active projects list.",
+        relatedArticles: [
+            "Creating Your First Project"
+        ]
+    }
+];
+const supportTeam = [
+    {
+        id: "s1",
+        name: "Sarah Chen",
+        role: "Lead Support Specialist",
+        avatar: "/avatars/sarah.png",
+        status: "online"
+    },
+    {
+        id: "s2",
+        name: "Marcus Johnson",
+        role: "Technical Support",
+        avatar: "/avatars/marcus.png",
+        status: "online"
+    },
+    {
+        id: "s3",
+        name: "Elena Rodriguez",
+        role: "Customer Success",
+        avatar: "/avatars/elena.png",
+        status: "away"
+    },
+    {
+        id: "s4",
+        name: "David Kim",
+        role: "Integration Specialist",
+        avatar: "/avatars/david.png",
+        status: "online"
+    }
+];
 const getProjectById = (id)=>{
     return projects.find((project)=>project.id === id);
 };
@@ -2614,15 +2852,15 @@ const data = {
             icon: __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$image$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__FileImage$3e$__["FileImage"]
         },
         {
-            title: "Team",
-            url: "/app/team",
+            title: "Organization",
+            url: "/app/organization",
             icon: __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__["Users"]
         }
     ],
     navSecondary: [
         {
-            title: "Documentation",
-            url: "/app/documentation",
+            title: "Help",
+            url: "/app/help",
             icon: __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$text$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__FileText$3e$__["FileText"]
         },
         {

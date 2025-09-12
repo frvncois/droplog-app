@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "@/components/global/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,

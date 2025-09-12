@@ -237,36 +237,14 @@ ${recentActivity > 0 ? `Recent activity shows ${recentActivity} update${recentAc
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Project Summary
-            </CardTitle>
-            <CardDescription>
-              Generate a comprehensive written overview of your project's current status and progress
-            </CardDescription>
-          </div>
-          <Button 
-            onClick={generateWrittenSummary} 
-            disabled={isGenerating}
-            className="flex items-center gap-2"
-          >
-            {isGenerating ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Bot className="h-4 w-4" />
-                Generate Summary
-              </>
-            )}
-          </Button>
-        </div>
-      </CardHeader>
+                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Project Summary
+              </CardTitle>
+              <div className="p-2 rounded-md bg-blue-50">
+                <Bot className="h-4 w-4 text-blue-600"/>
+              </div>
+            </CardHeader>
 
       <CardContent>
         {isGenerating && (
@@ -292,13 +270,30 @@ ${recentActivity > 0 ? `Recent activity shows ${recentActivity} update${recentAc
         )}
 
         {!summary && !isGenerating && (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to create your project summary</h3>
-            <p className="text-muted-foreground mb-4">
+          <div className="text-center flex-col flex gap-4 items-center py-12">
+            <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
+            <h3 className="font-medium text-gray-900">Ready to create your project summary</h3>
+            <p className="text-muted-foreground">
               Click "Generate Summary" to create a comprehensive written overview that analyzes your 
               project's progress, team performance, content status, and provides actionable insights.
             </p>
+                      <Button 
+            onClick={generateWrittenSummary} 
+            disabled={isGenerating}
+            className="flex items-center gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Bot className="h-4 w-4" />
+                Generate Summary
+              </>
+            )}
+          </Button>
             <Badge variant="secondary" className="mb-4">
               <Bot className="h-3 w-3 mr-1" />
               AI-Powered Analysis

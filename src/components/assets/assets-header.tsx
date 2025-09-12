@@ -1,8 +1,8 @@
+// components/assets/assets-header.tsx
 'use client'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -13,46 +13,15 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  Upload, 
-  Search, 
-  Filter, 
-  Plug,
-  Bell,
-  Users,
-  Plus,
-  Settings,
-  ArrowUpDown, 
-  Grid3X3, 
-  List,
-  Download,
-  MoreHorizontal 
-} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Search, Upload, Grid, List, Filter, SortAsc } from 'lucide-react'
+import { AssetsHeaderProps } from '@/lib/types/assets'
 import { projects } from '@/lib/utils/dummy-data'
 
-interface AssetsHeaderProps {
-  assets: any[]
-  searchTerm: string
-  setSearchTerm: (term: string) => void
-  typeFilter: string
-  setTypeFilter: (filter: string) => void
-  projectFilter: string
-  setProjectFilter: (filter: string) => void
-  sortBy: string
-  setSortBy: (sort: string) => void
-  viewMode: 'grid' | 'list'
-  setViewMode: (mode: 'grid' | 'list') => void
-  onUpload: () => void
-}
-
 export function AssetsHeader({
-  assets,
   searchTerm,
   setSearchTerm,
   typeFilter,
@@ -63,61 +32,167 @@ export function AssetsHeader({
   setSortBy,
   viewMode,
   setViewMode,
-  onUpload
+  onUpload,
 }: AssetsHeaderProps) {
-  const totalAssets = assets.length
-  const totalSize = assets.reduce((acc, asset) => acc + (asset.size || 0), 0)
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
+  const assetTypes = [
+    { value: 'all', label: 'All Types' },
+    { value: 'image', label: 'Images' },
+    { value: 'video', label: 'Videos' },
+    { value: 'document', label: 'Documents' },
+    { value: 'pdf', label: 'PDFs' },
+    { value: 'audio', label: 'Audio' },
+    { value: 'other', label: 'Other' },
+  ]
+
+  const sortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'alphabetical', label: 'A-Z' },
+    { value: 'size', label: 'File Size' },
+  ]
 
   return (
-      <div className="space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-0">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-3xl font-semibold tracking-tight">Assets</h1>
-            </div>
-            <p className="text-muted-foreground text-sm max-w-2xl">
-              Manage and organize all your projects assets
-            </p>
-          </div>
-          <div className="space-y-0">
-          <div className="flex items-center space-x-2">
-            <Button variant="default" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Upload assets
-            </Button>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Assets</h1>
+          <p className="text-gray-600">Manage all your project assets</p>
+        </div>
+        <Button onClick={onUpload}>
+          <Upload className="h-4 w-4 mr-2" />
+          Upload Assets
+        </Button>
+      </div>
+
+      {/* Filters and Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        {/* Search */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search assets..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-2">
+          {/* Type Filter */}
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[140px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {assetTypes.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Project Filter */}
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All Projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Sort */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4" />
+              <Button variant="outline">
+                <SortAsc className="h-4 w-4 mr-2" />
+                Sort
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Assets settings</DropdownMenuLabel>
-              <DropdownMenuSeparator/>
-              <DropdownMenuItem>
-                <Plug className="mr-2 h-4 w-4" />
-                Integrations
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
-                Authorizations
-              </DropdownMenuItem>
+            <DropdownMenuContent>
+              {sortOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => setSortBy(option.value)}
+                >
+                  {option.label}
+                  {sortBy === option.value && (
+                    <Badge variant="secondary" className="ml-2">
+                      Active
+                    </Badge>
+                  )}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+
+          {/* View Mode */}
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="rounded-r-none"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Active Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {typeFilter !== 'all' && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Type: {assetTypes.find(t => t.value === typeFilter)?.label}
+            <button
+              onClick={() => setTypeFilter('all')}
+              className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {projectFilter !== 'all' && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Project: {projects.find(p => p.id === projectFilter)?.title}
+            <button
+              onClick={() => setProjectFilter('all')}
+              className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {searchTerm && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Search: "{searchTerm}"
+            <button
+              onClick={() => setSearchTerm('')}
+              className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+      </div>
+    </div>
   )
 }

@@ -1,11 +1,10 @@
+// app/assets/page.tsx
 'use client'
-
 import { useState, useMemo } from 'react'
 import { AssetsHeader } from '@/components/assets/assets-header'
-import { AssetsStats } from '@/components/assets/assets-stats'
 import { AssetsGrid } from '@/components/assets/assets-grid'
 import { UploadAssetModal } from '@/components/modals/upload-asset-modal'
-import { assets, projects, team } from '@/lib/utils/dummy-data'
+import { assets } from '@/lib/utils/dummy-data'
 
 export default function AssetsPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -20,7 +19,6 @@ export default function AssetsPage() {
       const matchesSearch = asset.title.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesType = typeFilter === 'all' || asset.type === typeFilter
       const matchesProject = projectFilter === 'all' || asset.projectId === projectFilter
-      
       return matchesSearch && matchesType && matchesProject
     })
 
@@ -36,12 +34,16 @@ export default function AssetsPage() {
         filtered.sort((a, b) => a.title.localeCompare(b.title))
         break
       case 'size':
-        filtered.sort((a, b) => (b.size || 0) - (a.size || 0))
+        // Sort by file size if available, otherwise by title
+        filtered.sort((a, b) => {
+          const sizeA = 'size' in a ? (a.size as number) || 0 : 0
+          const sizeB = 'size' in b ? (b.size as number) || 0 : 0
+          return sizeB - sizeA
+        })
         break
       default:
         break
     }
-
     return filtered
   }, [assets, searchTerm, typeFilter, projectFilter, sortBy])
 
@@ -63,8 +65,7 @@ export default function AssetsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <AssetsHeader 
-        assets={assets}
+      <AssetsHeader
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         typeFilter={typeFilter}
@@ -78,17 +79,17 @@ export default function AssetsPage() {
         onUpload={() => setUploadModalOpen(true)}
       />
       
-      <AssetsGrid 
+      <AssetsGrid
         assets={filteredAssets}
         viewMode={viewMode}
         onAssetUpdate={handleAssetUpdate}
         onAssetDelete={handleAssetDelete}
       />
-
+      
       <UploadAssetModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
-        onAssetsUploaded={handleAssetUpload}
+        onUpload={handleAssetUpload}
       />
     </div>
   )

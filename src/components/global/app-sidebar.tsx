@@ -28,11 +28,11 @@ import {
   ChevronRight,
 } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/global/nav-main"
+import { NavProjects } from "@/components/global/nav-projects"
+import { NavUser } from "@/components/global/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
-import { NavSecondary } from "@/components/nav-secondary"
+import { NavSecondary } from "@/components/global/nav-secondary"
 import {
   Sidebar,
   SidebarContent,
@@ -78,15 +78,15 @@ const data = {
       icon: FileImage,
     },
     {
-      title: "Team",
-      url: "/app/team",
+      title: "Organization",
+      url: "/app/organization",
       icon: Users,
     },
   ],
   navSecondary: [
     {
-      title: "Documentation",
-      url: "/app/documentation",
+      title: "Help",
+      url: "/app/help",
       icon: FileText,
     },
     {

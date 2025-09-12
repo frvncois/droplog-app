@@ -1,10 +1,8 @@
-"use client";
+// components/modals/upload-asset-modal.tsx
+'use client'
 
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -12,389 +10,337 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { 
-  Upload, 
-  FileImage, 
-  Loader2,
+} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Upload,
   X,
-  File,
+  FileText,
   Image,
   Video,
-  FileText
-} from "lucide-react";
-import { projects, team } from "@/lib/utils/dummy-data";
+  File,
+  Music,
+} from 'lucide-react'
+import { UploadAssetModalProps } from '@/lib/types/assets'
+import { projects } from '@/lib/utils/dummy-data'
 
-interface UploadAssetModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  projectId?: string;
-  trigger?: React.ReactNode;
+interface UploadedFile {
+  id: string
+  file: File
+  title: string
+  description: string
+  projectId: string
+  tags: string[]
+  type: 'image' | 'video' | 'document' | 'pdf' | 'audio' | 'other'
 }
 
-interface FileUpload {
-  file: File;
-  title: string;
-  description: string;
-  type: "image" | "video" | "pdf" | "document" | "other";
-}
+export function UploadAssetModal({
+  open,
+  onOpenChange,
+  onUpload,
+}: UploadAssetModalProps) {
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
+  const [dragActive, setDragActive] = useState(false)
+  const [currentTag, setCurrentTag] = useState('')
 
-export function UploadAssetModal({ open, onOpenChange, projectId, trigger }: UploadAssetModalProps) {
-  const [formData, setFormData] = useState({
-    projectId: projectId || "",
-    assignedTo: "",
-  });
-  const [uploads, setUploads] = useState<FileUpload[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const getFileType = (file: File): UploadedFile['type'] => {
+    const type = file.type.toLowerCase()
+    if (type.startsWith('image/')) return 'image'
+    if (type.startsWith('video/')) return 'video'
+    if (type.startsWith('audio/')) return 'audio'
+    if (type === 'application/pdf') return 'pdf'
+    if (type.includes('document') || type.includes('text')) return 'document'
+    return 'other'
+  }
 
-  const resetForm = () => {
-    setFormData({
-      projectId: projectId || "",
-      assignedTo: "",
-    });
-    setUploads([]);
-    setUploadProgress(0);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (uploads.length === 0) return;
-
-    setIsLoading(true);
-    setUploadProgress(0);
-
-    try {
-      // Simulate file upload with progress
-      for (let i = 0; i <= 100; i += 10) {
-        setUploadProgress(i);
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      // Here you would typically upload files to your storage service
-      console.log("Uploading assets:", { formData, uploads });
-      
-      // Close modal and reset form
-      onOpenChange(false);
-      resetForm();
-    } catch (error) {
-      console.error("Error uploading assets:", error);
-    } finally {
-      setIsLoading(false);
-      setUploadProgress(0);
-    }
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const detectFileType = (file: File): FileUpload["type"] => {
-    const mimeType = file.type;
-    if (mimeType.startsWith("image/")) return "image";
-    if (mimeType.startsWith("video/")) return "video";
-    if (mimeType === "application/pdf") return "pdf";
-    if (mimeType.includes("document") || mimeType.includes("text") || 
-        mimeType.includes("word") || mimeType.includes("sheet")) return "document";
-    return "other";
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const newUploads: FileUpload[] = files.map(file => ({
-      file,
-      title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
-      description: "",
-      type: detectFileType(file),
-    }));
-    
-    setUploads(prev => [...prev, ...newUploads]);
-  };
-
-  const updateUpload = (index: number, field: keyof Omit<FileUpload, "file">, value: string) => {
-    setUploads(prev => prev.map((upload, i) => 
-      i === index ? { ...upload, [field]: value } : upload
-    ));
-  };
-
-  const removeUpload = (index: number) => {
-    setUploads(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const getFileIcon = (type: FileUpload["type"]) => {
+  const getFileIcon = (type: UploadedFile['type']) => {
     switch (type) {
-      case "image":
-        return Image;
-      case "video":
-        return Video;
-      case "pdf":
-      case "document":
-        return FileText;
+      case 'image':
+        return <Image className="h-6 w-6 text-blue-500" />
+      case 'video':
+        return <Video className="h-6 w-6 text-purple-500" />
+      case 'pdf':
+      case 'document':
+        return <FileText className="h-6 w-6 text-red-500" />
+      case 'audio':
+        return <Music className="h-6 w-6 text-green-500" />
       default:
-        return File;
+        return <File className="h-6 w-6 text-gray-500" />
     }
-  };
+  }
 
   const formatFileSize = (bytes: number) => {
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    if (bytes === 0) return '0 Byte';
-    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)).toString());
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-  };
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    handleFiles(files)
+  }
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    handleFiles(files)
+  }
+
+  const handleFiles = (files: File[]) => {
+    const newFiles: UploadedFile[] = files.map((file) => ({
+      id: Math.random().toString(36).substr(2, 9),
+      file,
+      title: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+      description: '',
+      projectId: projects[0]?.id || '',
+      tags: [],
+      type: getFileType(file),
+    }))
+
+    setUploadedFiles((prev) => [...prev, ...newFiles])
+  }
+
+  const removeFile = (id: string) => {
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== id))
+  }
+
+  const updateFile = (id: string, updates: Partial<UploadedFile>) => {
+    setUploadedFiles((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    )
+  }
+
+  const addTag = (fileId: string, tag: string) => {
+    if (!tag.trim()) return
+    updateFile(fileId, {
+      tags: [...(uploadedFiles.find(f => f.id === fileId)?.tags || []), tag.trim()]
+    })
+  }
+
+  const removeTag = (fileId: string, tagIndex: number) => {
+    const file = uploadedFiles.find(f => f.id === fileId)
+    if (!file) return
+    const newTags = file.tags.filter((_, index) => index !== tagIndex)
+    updateFile(fileId, { tags: newTags })
+  }
+
+  const handleSubmit = () => {
+    const assetsToUpload = uploadedFiles.map((file) => ({
+      ...file,
+      size: file.file.size,
+      fileName: file.file.name,
+      addedBy: 'current-user', // In real app, get from auth
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    }))
+
+    onUpload(assetsToUpload)
+    setUploadedFiles([])
+  }
+
+  const handleCancel = () => {
+    setUploadedFiles([])
+    onOpenChange(false)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-4">
-            <FileImage className="h-5 w-5" />
-            Upload Assets
-          </DialogTitle>
+          <DialogTitle>Upload Assets</DialogTitle>
           <DialogDescription>
-            Upload files and organize them for your project team.
+            Add files to your project assets. You can drag and drop files or click to browse.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Project and Assignment */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Project *</Label>
-              <Select
-                value={formData.projectId}
-                onValueChange={(value) => handleInputChange("projectId", value)}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline" className="text-xs">
-                          {project.status}
-                        </Badge>
-                        <span>{project.title}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Assign to</Label>
-              <Select
-                value={formData.assignedTo}
-                onValueChange={(value) => handleInputChange("assignedTo", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select assignee" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
-                  {team.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={member.avatarUrl} />
-                          <AvatarFallback className="text-xs">
-                            {member.name.split(" ").map(n => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{member.name}</div>
-                          <div className="text-xs text-muted-foreground capitalize">
-                            {member.role.replace("_", " ")}
-                          </div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* File Upload Area */}
-          <div className="space-y-4">
-            <Label>Upload Files</Label>
-            <div 
-              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Click to upload files</p>
-                <p className="text-xs text-muted-foreground">
-                  Support for images, videos, PDFs, and documents
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Maximum file size: 50MB per file
-                </p>
-              </div>
-            </div>
+        <div className="space-y-6">
+          {/* Upload Area */}
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              dragActive
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+          >
+            <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600 mb-2">
+              Drag and drop your files here, or click to browse
+            </p>
             <input
-              ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*,video/*,.pdf,.doc,.docx,.txt,.md"
-              onChange={handleFileSelect}
+              onChange={handleFileInput}
               className="hidden"
+              id="file-upload"
             />
+            <label htmlFor="file-upload">
+              <Button variant="outline" className="cursor-pointer">
+                Choose Files
+              </Button>
+            </label>
           </div>
 
-          {/* Uploaded Files List */}
-          {uploads.length > 0 && (
+          {/* Uploaded Files */}
+          {uploadedFiles.length > 0 && (
             <div className="space-y-4">
-              <Label>Files to Upload ({uploads.length})</Label>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {uploads.map((upload, index) => {
-                  const Icon = getFileIcon(upload.type);
-                  return (
-                    <div key={index} className="border rounded-lg p-4 space-y-3">
+              <h3 className="font-medium">Uploaded Files ({uploadedFiles.length})</h3>
+              
+              {uploadedFiles.map((uploadedFile) => (
+                <Card key={uploadedFile.id}>
+                  <CardContent className="p-4">
+                    <div className="space-y-4">
+                      {/* File Info */}
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-muted rounded-lg">
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{upload.file.name}</p>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <Badge variant="outline" className="text-xs">
-                                {upload.type}
-                              </Badge>
-                              <span>{formatFileSize(upload.file.size)}</span>
-                            </div>
+                          {getFileIcon(uploadedFile.type)}
+                          <div>
+                            <p className="font-medium text-sm">{uploadedFile.file.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {formatFileSize(uploadedFile.file.size)} • {uploadedFile.type}
+                            </p>
                           </div>
                         </div>
                         <Button
-                          type="button"
                           variant="ghost"
-                          size="sm"
-                          onClick={() => removeUpload(index)}
-                          className="h-8 w-8 p-0"
+                          size="icon"
+                          onClick={() => removeFile(uploadedFile.id)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Asset Title</Label>
+
+                      {/* File Details Form */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`title-${uploadedFile.id}`}>Title</Label>
                           <Input
-                            placeholder="Enter asset title"
-                            value={upload.title}
-                            onChange={(e) => updateUpload(index, "title", e.target.value)}
-                            className="h-8 text-sm"
+                            id={`title-${uploadedFile.id}`}
+                            value={uploadedFile.title}
+                            onChange={(e) => updateFile(uploadedFile.id, { title: e.target.value })}
+                            placeholder="Asset title"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Type</Label>
+
+                        <div className="space-y-2">
+                          <Label htmlFor={`project-${uploadedFile.id}`}>Project</Label>
                           <Select
-                            value={upload.type}
-                            onValueChange={(value) => updateUpload(index, "type", value as FileUpload["type"])}
+                            value={uploadedFile.projectId}
+                            onValueChange={(value) => updateFile(uploadedFile.id, { projectId: value })}
                           >
-                            <SelectTrigger className="h-8 text-sm">
-                              <SelectValue />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select project" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="image">Image</SelectItem>
-                              <SelectItem value="video">Video</SelectItem>
-                              <SelectItem value="pdf">PDF</SelectItem>
-                              <SelectItem value="document">Document</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
+                              {projects.map((project) => (
+                                <SelectItem key={project.id} value={project.id}>
+                                  {project.title}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
-                      
-                      <div className="space-y-1">
-                        <Label className="text-xs">Description</Label>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`description-${uploadedFile.id}`}>Description</Label>
                         <Textarea
-                          placeholder="Optional description"
-                          value={upload.description}
-                          onChange={(e) => updateUpload(index, "description", e.target.value)}
+                          id={`description-${uploadedFile.id}`}
+                          value={uploadedFile.description}
+                          onChange={(e) => updateFile(uploadedFile.id, { description: e.target.value })}
+                          placeholder="Asset description"
                           rows={2}
-                          className="text-sm"
                         />
                       </div>
+
+                      {/* Tags */}
+                      <div className="space-y-2">
+                        <Label>Tags</Label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {uploadedFile.tags.map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                              {tag}
+                              <button
+                                onClick={() => removeTag(uploadedFile.id, index)}
+                                className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            value={currentTag}
+                            onChange={(e) => setCurrentTag(e.target.value)}
+                            placeholder="Add tag"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                addTag(uploadedFile.id, currentTag)
+                                setCurrentTag('')
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              addTag(uploadedFile.id, currentTag)
+                              setCurrentTag('')
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
+        </div>
 
-          {/* Upload Progress */}
-          {isLoading && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span>Uploading files...</span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <Progress value={uploadProgress} className="h-2" />
-            </div>
-          )}
-
-          {/* Upload Summary */}
-          {uploads.length > 0 && (
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <h4 className="font-medium text-sm">Upload Summary</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total files:</span>
-                  <span>{uploads.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total size:</span>
-                  <span>{formatFileSize(uploads.reduce((sum, upload) => sum + upload.file.size, 0))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Images:</span>
-                  <span>{uploads.filter(u => u.type === "image").length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Documents:</span>
-                  <span>{uploads.filter(u => u.type === "pdf" || u.type === "document").length}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading || uploads.length === 0 || !formData.projectId}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Upload {uploads.length} {uploads.length === 1 ? "File" : "Files"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={uploadedFiles.length === 0}
+          >
+            Upload {uploadedFiles.length} {uploadedFiles.length === 1 ? 'Asset' : 'Assets'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

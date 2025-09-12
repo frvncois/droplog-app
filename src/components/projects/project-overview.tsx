@@ -151,8 +151,17 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
+          
           {/* Progress Overview */}
           <Card>
+             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Progress
+              </CardTitle>
+              <div className="p-2 rounded-md bg-blue-50">
+                <Plus className="h-4 w-4 text-blue-600"/>
+              </div>
+            </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -169,16 +178,13 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
           {/* Recent Activity */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-5 w-5" />
-                  <span>Recent Activity</span>
-                </div>
-                <Button variant="ghost" size="sm">
-                  View All
-                </Button>
+             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Recent Activity
               </CardTitle>
+              <div className="p-2 rounded-md bg-blue-50">
+                <Clock className="h-4 w-4 text-blue-600"/>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -219,8 +225,13 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         <div className="space-y-6">
           {/* Project Description */}
           <Card>
-            <CardHeader>
-              <CardTitle>Project Description</CardTitle>
+             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Project overview
+              </CardTitle>
+              <div className="p-2 rounded-md bg-blue-50">
+                <Clock className="h-4 w-4 text-blue-600"/>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm max-w-none">

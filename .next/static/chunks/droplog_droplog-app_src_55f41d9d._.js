@@ -35,9 +35,20 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 "[project]/droplog/droplog-app/src/lib/utils.ts [app-client] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
+// lib/utils.ts
 __turbopack_context__.s([
     "cn",
-    ()=>cn
+    ()=>cn,
+    "formatDate",
+    ()=>formatDate,
+    "formatDateTime",
+    ()=>formatDateTime,
+    "formatRelativeTime",
+    ()=>formatRelativeTime,
+    "getInitials",
+    ()=>getInitials,
+    "truncateText",
+    ()=>truncateText
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$clsx$2f$dist$2f$clsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/clsx/dist/clsx.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$tailwind$2d$merge$2f$dist$2f$bundle$2d$mjs$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/tailwind-merge/dist/bundle-mjs.mjs [app-client] (ecmascript)");
@@ -48,6 +59,52 @@ function cn() {
         inputs[_key] = arguments[_key];
     }
     return (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$tailwind$2d$merge$2f$dist$2f$bundle$2d$mjs$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["twMerge"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$clsx$2f$dist$2f$clsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clsx"])(inputs));
+}
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+function formatDateTime(date) {
+    return new Date(date).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+function getInitials(name) {
+    return name.split(' ').map((n)=>n[0]).join('').toUpperCase().slice(0, 2);
+}
+function truncateText(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+}
+function formatRelativeTime(date) {
+    const now = new Date();
+    const targetDate = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+    const diffInMonths = Math.floor(diffInDays / 30);
+    const diffInYears = Math.floor(diffInDays / 365);
+    if (diffInSeconds < 60) {
+        return 'just now';
+    } else if (diffInMinutes < 60) {
+        return "".concat(diffInMinutes, " minute").concat(diffInMinutes === 1 ? '' : 's', " ago");
+    } else if (diffInHours < 24) {
+        return "".concat(diffInHours, " hour").concat(diffInHours === 1 ? '' : 's', " ago");
+    } else if (diffInDays < 30) {
+        return "".concat(diffInDays, " day").concat(diffInDays === 1 ? '' : 's', " ago");
+    } else if (diffInMonths < 12) {
+        return "".concat(diffInMonths, " month").concat(diffInMonths === 1 ? '' : 's', " ago");
+    } else {
+        return "".concat(diffInYears, " year").concat(diffInYears === 1 ? '' : 's', " ago");
+    }
 }
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);

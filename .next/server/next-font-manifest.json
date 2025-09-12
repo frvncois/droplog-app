@@ -3,6 +3,21 @@
     "[project]/droplog/droplog-app/src/app/_not-found/page": [
       "static/media/Geist_Variable-s.p.f19e4721.woff2"
     ],
+    "[project]/droplog/droplog-app/src/app/app/assets/page": [
+      "static/media/Geist_Variable-s.p.f19e4721.woff2"
+    ],
+    "[project]/droplog/droplog-app/src/app/app/documentation/page": [
+      "static/media/Geist_Variable-s.p.f19e4721.woff2"
+    ],
+    "[project]/droplog/droplog-app/src/app/app/help/page": [
+      "static/media/Geist_Variable-s.p.f19e4721.woff2"
+    ],
+    "[project]/droplog/droplog-app/src/app/app/integrations/page": [
+      "static/media/Geist_Variable-s.p.f19e4721.woff2"
+    ],
+    "[project]/droplog/droplog-app/src/app/app/organization/page": [
+      "static/media/Geist_Variable-s.p.f19e4721.woff2"
+    ],
     "[project]/droplog/droplog-app/src/app/app/projects/[id]/page": [
       "static/media/Geist_Variable-s.p.f19e4721.woff2"
     ],
@@ -10,6 +25,9 @@
       "static/media/Geist_Variable-s.p.f19e4721.woff2"
     ],
     "[project]/droplog/droplog-app/src/app/app/settings/page": [
+      "static/media/Geist_Variable-s.p.f19e4721.woff2"
+    ],
+    "[project]/droplog/droplog-app/src/app/app/tasks/page": [
       "static/media/Geist_Variable-s.p.f19e4721.woff2"
     ],
     "[project]/droplog/droplog-app/src/app/app/workspace/page": [

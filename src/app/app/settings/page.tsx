@@ -20,7 +20,7 @@ export default function AccountSettingsPage() {
   const [activeTab, setActiveTab] = useState('profile')
 
   return (
-    <div className="container mx-auto px-6 py-8 max-w-4xl">
+    <div className="container p-6 max-w-6xl mx-auto space-y-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
         <p className="text-gray-600 mt-2">
