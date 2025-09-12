@@ -1,9 +1,7 @@
 "use client"
-
 import { type LucideIcon, MoreHorizontal, Plus } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +19,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
+import { useUIStore } from "@/lib/stores/ui-store"
 
 export function NavProjects({
   projects,
@@ -35,6 +34,7 @@ export function NavProjects({
 }) {
   const { isMobile } = useSidebar()
   const pathname = usePathname()
+  const { setActiveModal } = useUIStore()
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -77,11 +77,12 @@ export function NavProjects({
           )
         })}
         <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70" asChild>
-            <Link href="/app/projects/new">
-              <Plus className="text-sidebar-foreground/70" />
-              <span>New Project</span>
-            </Link>
+          <SidebarMenuButton 
+            className="text-sidebar-foreground/70"
+            onClick={() => setActiveModal('create-project')}
+          >
+            <Plus className="text-sidebar-foreground/70" />
+            <span>New Project</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

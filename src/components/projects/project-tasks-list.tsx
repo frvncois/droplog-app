@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useUIStore } from '@/lib/stores/ui-store'
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -255,6 +256,7 @@ export function ProjectTasksList({ project }: ProjectTasksListProps) {
   const [priorityFilter, setPriorityFilter] = React.useState<string>("all");
 
   const projectTasks = getTasksByProjectId(project.id);
+  const { setActiveModal } = useUIStore()
 
   // Filter tasks based on status and priority
   const filteredTasks = React.useMemo(() => {
@@ -335,10 +337,14 @@ export function ProjectTasksList({ project }: ProjectTasksListProps) {
                 </SelectContent>
               </Select>
               
-                  <Button variant="default" className="ml-auto">
-                    <Plus className="h-4 w-4" />
-                    Create a task
-                  </Button>
+<Button 
+  variant="default" 
+  className="ml-auto"
+  onClick={() => setActiveModal('create-task', { projectId: project.id })}
+>
+  <Plus className="h-4 w-4" />
+  Create a task
+</Button>
             </div>
             
             <div className="overflow-hidden rounded-md border">

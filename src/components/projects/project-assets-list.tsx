@@ -348,7 +348,7 @@ export function ProjectAssetsList({ project }: ProjectAssetsListProps) {
   const videoCount = projectAssets.filter(a => a.type === "video").length;
   const documentCount = projectAssets.filter(a => a.type === "document" || a.type === "pdf").length;
 
-  return (
+  return ( 
     <div className="space-y-0">
       {/* Assets Table */}
       <div className="w-full flex flex-col gap-4">

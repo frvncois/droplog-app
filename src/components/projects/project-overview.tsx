@@ -48,6 +48,18 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Generate consistent mock file size based on asset ID
+const getMockFileSize = (assetId: string) => {
+  let hash = 0;
+  for (let i = 0; i < assetId.length; i++) {
+    const char = assetId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  // Use absolute value and modulo to get consistent size between 100KB and 10MB
+  return Math.abs(hash) % 10000000 + 100000;
+};
+
 export function ProjectOverview({ project }: ProjectOverviewProps) {
   const projectTasks = getTasksByProjectId(project.id);
   const projectAssets = getAssetsByProjectId(project.id);
@@ -86,7 +98,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     projectId: asset.projectId,
     type: asset.type,
     title: asset.title,
-    addedBy: asset.createdBy,
+    addedBy: asset.addedBy,
     updatedAt: asset.updatedAt
   }));
 
@@ -104,7 +116,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     id: member.id,
     name: member.name,
     role: member.role,
-    avatarUrl: member.avatarUrl
+    avatarUrl: member.avatarUrl || ''
   }));
   
   // Recent activity items (mock data for demonstration)
@@ -194,13 +206,13 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
             </CardContent>
           </Card>
 
-                <ProjectWrittenSummary
-        project={summaryProject}
-        tasks={summaryTasks}
-        assets={summaryAssets}
-        content={summaryContent}
-        team={summaryTeam}
-      />
+          <ProjectWrittenSummary
+            project={summaryProject}
+            tasks={summaryTasks}
+            assets={summaryAssets}
+            content={summaryContent}
+            team={summaryTeam}
+          />
         </div>
 
         {/* Right Column */}
@@ -268,7 +280,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                 </CardContent>
               </Card>
 
-              {/* Assets Card */}
+              {/* Assets Card - FIXED: Using consistent mock data */}
               <Card className="relative overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -282,7 +294,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                   <div className="text-2xl font-semibold">{projectAssets.length}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatFileSize(projectAssets.reduce((acc: number, asset: Asset) => {
-                      const mockSize = Math.floor(Math.random() * 10000000) + 100000;
+                      const mockSize = getMockFileSize(asset.id); // FIXED: Use consistent mock size
                       return acc + mockSize;
                     }, 0))} total size
                   </p>
