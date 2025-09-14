@@ -2790,7 +2790,7 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$gallery$2d$vertical$2d$end$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__GalleryVerticalEnd$3e$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/lucide-react/dist/esm/icons/gallery-vertical-end.js [app-ssr] (ecmascript) <export default as GalleryVerticalEnd>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$layout$2d$dashboard$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__LayoutDashboard$3e$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/lucide-react/dist/esm/icons/layout-dashboard.js [app-ssr] (ecmascript) <export default as LayoutDashboard>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2d$kanban$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__SquareKanban$3e$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/lucide-react/dist/esm/icons/square-kanban.js [app-ssr] (ecmascript) <export default as SquareKanban>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$folder$2d$open$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__FolderOpen$3e$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/lucide-react/dist/esm/icons/folder-open.js [app-ssr] (ecmascript) <export default as FolderOpen>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2d$check$2d$big$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckSquare$3e$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/lucide-react/dist/esm/icons/square-check-big.js [app-ssr] (ecmascript) <export default as CheckSquare>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$image$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__FileImage$3e$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/lucide-react/dist/esm/icons/file-image.js [app-ssr] (ecmascript) <export default as FileImage>");
@@ -2816,7 +2816,6 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f
 ;
 ;
 ;
-// This is sample data for the sidebar
 const data = {
     user: {
         name: "Current User",
@@ -2834,7 +2833,7 @@ const data = {
         {
             title: "Workspace",
             url: "/app/workspace",
-            icon: __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$layout$2d$dashboard$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__LayoutDashboard$3e$__["LayoutDashboard"]
+            icon: __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$square$2d$kanban$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__SquareKanban$3e$__["SquareKanban"]
         },
         {
             title: "Projects",
@@ -2892,12 +2891,12 @@ function AppSidebar({ ...props }) {
                     teams: data.teams
                 }, void 0, false, {
                     fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                    lineNumber: 116,
+                    lineNumber: 101,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                lineNumber: 115,
+                lineNumber: 100,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$sidebar$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["SidebarContent"], {
@@ -2906,14 +2905,14 @@ function AppSidebar({ ...props }) {
                         items: data.navMain
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                        lineNumber: 119,
+                        lineNumber: 104,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$global$2f$nav$2d$projects$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["NavProjects"], {
                         projects: data.projects
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                        lineNumber: 120,
+                        lineNumber: 105,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$global$2f$nav$2d$secondary$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["NavSecondary"], {
@@ -2921,13 +2920,13 @@ function AppSidebar({ ...props }) {
                         className: "mt-auto"
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                        lineNumber: 121,
+                        lineNumber: 106,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                lineNumber: 118,
+                lineNumber: 103,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$sidebar$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["SidebarFooter"], {
@@ -2935,23 +2934,23 @@ function AppSidebar({ ...props }) {
                     user: data.user
                 }, void 0, false, {
                     fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                    lineNumber: 124,
+                    lineNumber: 109,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                lineNumber: 123,
+                lineNumber: 108,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$sidebar$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["SidebarRail"], {}, void 0, false, {
                 fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-                lineNumber: 126,
+                lineNumber: 111,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/droplog/droplog-app/src/components/global/app-sidebar.tsx",
-        lineNumber: 114,
+        lineNumber: 99,
         columnNumber: 5
     }, this);
 }

@@ -1,3 +1,5 @@
+// components/global/nav-main.tsx - Cleaned
+
 "use client"
 
 import { type LucideIcon } from "lucide-react"

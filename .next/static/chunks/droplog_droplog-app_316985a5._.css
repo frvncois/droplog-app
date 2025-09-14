@@ -253,9 +253,7 @@
     --container-md: 28rem;
     --container-lg: 32rem;
     --container-2xl: 42rem;
-    --container-4xl: 56rem;
     --container-6xl: 72rem;
-    --container-7xl: 80rem;
     --text-xs: .75rem;
     --text-xs--line-height: calc(1 / .75);
     --text-sm: .875rem;
@@ -1219,11 +1217,6 @@
     height: calc(var(--spacing) * 4);
   }
 
-  .size-5 {
-    width: calc(var(--spacing) * 5);
-    height: calc(var(--spacing) * 5);
-  }
-
   .size-6 {
     width: calc(var(--spacing) * 6);
     height: calc(var(--spacing) * 6);
@@ -1242,11 +1235,6 @@
   .size-9 {
     width: calc(var(--spacing) * 9);
     height: calc(var(--spacing) * 9);
-  }
-
-  .size-12 {
-    width: calc(var(--spacing) * 12);
-    height: calc(var(--spacing) * 12);
   }
 
   .size-auto {
@@ -1374,10 +1362,6 @@
 
   .max-h-48 {
     max-height: calc(var(--spacing) * 48);
-  }
-
-  .max-h-64 {
-    max-height: calc(var(--spacing) * 64);
   }
 
   .max-h-\[90vh\] {
@@ -1569,16 +1553,8 @@
     max-width: var(--container-2xl);
   }
 
-  .max-w-4xl {
-    max-width: var(--container-4xl);
-  }
-
   .max-w-6xl {
     max-width: var(--container-6xl);
-  }
-
-  .max-w-7xl {
-    max-width: var(--container-7xl);
   }
 
   .max-w-\[calc\(100\%-2rem\)\] {
@@ -2746,10 +2722,6 @@
     padding-left: calc(var(--spacing) * 8);
   }
 
-  .pl-9 {
-    padding-left: calc(var(--spacing) * 9);
-  }
-
   .pl-10 {
     padding-left: calc(var(--spacing) * 10);
   }
@@ -3653,18 +3625,6 @@
   }
 
   @media (hover: hover) {
-    .hover\:border-muted-foreground\/50:hover {
-      border-color: var(--muted-foreground);
-    }
-
-    @supports (color: color-mix(in lab, red, red)) {
-      .hover\:border-muted-foreground\/50:hover {
-        border-color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
-      }
-    }
-  }
-
-  @media (hover: hover) {
     .hover\:bg-accent:hover {
       background-color: var(--accent);
     }
@@ -3805,12 +3765,6 @@
   @media (hover: hover) {
     .hover\:text-accent-foreground:hover {
       color: var(--accent-foreground);
-    }
-  }
-
-  @media (hover: hover) {
-    .hover\:text-blue-600:hover {
-      color: var(--color-blue-600);
     }
   }
 
@@ -4662,12 +4616,6 @@
   }
 
   @media (min-width: 40rem) {
-    .sm\:max-w-2xl {
-      max-width: var(--container-2xl);
-    }
-  }
-
-  @media (min-width: 40rem) {
     .sm\:max-w-\[425px\] {
       max-width: 425px;
     }
@@ -4688,12 +4636,6 @@
   @media (min-width: 40rem) {
     .sm\:max-w-\[600px\] {
       max-width: 600px;
-    }
-  }
-
-  @media (min-width: 40rem) {
-    .sm\:max-w-\[700px\] {
-      max-width: 700px;
     }
   }
 

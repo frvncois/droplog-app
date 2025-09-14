@@ -1,14 +1,14 @@
 "use client"
 
+import * as React from "react"
+import { useRouter } from "next/navigation"
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
+  Settings,
+  Users,
 } from "lucide-react"
-
 import {
   Avatar,
   AvatarFallback,
@@ -30,6 +30,24 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
+const userMenuItems = [
+  {
+    name: "Account",
+    tab: "profile",
+    icon: BadgeCheck,
+  },
+  {
+    name: "Preferences", 
+    tab: "preferences",
+    icon: Settings,
+  },
+  {
+    name: "Teams",
+    tab: "teams",
+    icon: Users,
+  }
+]
+
 export function NavUser({
   user,
 }: {
@@ -40,6 +58,16 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+
+  const handleNavigateToSettings = (tab: string) => {
+    router.push(`/app/settings?tab=${tab}`)
+  }
+
+  const handleLogout = () => {
+    // TODO: Implement logout logic
+    console.log("Logout clicked")
+  }
 
   return (
     <SidebarMenu>
@@ -81,29 +109,23 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
+              {userMenuItems.map((item) => {
+                const IconComponent = item.icon
+                return (
+                  <DropdownMenuItem
+                    key={item.tab}
+                    onClick={() => handleNavigateToSettings(item.tab)}
+                    className="gap-4 p-2"
+                  >
+                    <IconComponent className="size-4" />
+                    {item.name}
+                  </DropdownMenuItem>
+                )
+              })}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
+            <DropdownMenuItem onClick={handleLogout} className="gap-4 p-2">
+              <LogOut className="size-4" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -1,7 +1,8 @@
 "use client"
-import { type LucideIcon, MoreHorizontal, Plus } from "lucide-react"
+
+import { type LucideIcon, MoreHorizontal, Plus, ExternalLink, LayoutDashboard, CheckSquare, FileText, FileImage, BookOpen } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +19,35 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Badge } from "@/components/ui/badge"
 import { useUIStore } from "@/lib/stores/ui-store"
+
+const projectMenuItems = [
+  {
+    name: "Overview",
+    path: "",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Tasks", 
+    path: "/tasks",
+    icon: CheckSquare,
+  },
+  {
+    name: "Assets",
+    path: "/assets",
+    icon: FileImage,
+  },
+  {
+    name: "Content",
+    path: "/content", 
+    icon: FileText,
+  },
+  {
+    name: "Documentation",
+    path: "/documentation",
+    icon: BookOpen,
+  }
+]
 
 export function NavProjects({
   projects,
@@ -34,7 +62,18 @@ export function NavProjects({
 }) {
   const { isMobile } = useSidebar()
   const pathname = usePathname()
+  const router = useRouter()
   const { setActiveModal } = useUIStore()
+
+  const handleNavigateToProject = (projectUrl: string, path: string) => {
+    const fullUrl = path === "" ? projectUrl : `${projectUrl}${path}`
+    router.push(fullUrl)
+  }
+
+  const handleOpenInEditor = (projectUrl: string) => {
+    // TODO: Implement open in editor logic
+    console.log("Open in editor:", projectUrl)
+  }
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -61,23 +100,34 @@ export function NavProjects({
                   side={isMobile ? "bottom" : "right"}
                   align={isMobile ? "end" : "start"}
                 >
-                  <DropdownMenuItem>
-                    <span>View Project</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <span>Project Settings</span>
+                  <DropdownMenuItem 
+                    onClick={() => handleOpenInEditor(item.url)}
+                    className="gap-4 p-2"
+                  >
+                    <ExternalLink className="size-4" />
+                    <span>Open in Editor</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <span>Add Task</span>
-                  </DropdownMenuItem>
+                  {projectMenuItems.map((menuItem) => {
+                    const IconComponent = menuItem.icon
+                    return (
+                      <DropdownMenuItem
+                        key={menuItem.name}
+                        onClick={() => handleNavigateToProject(item.url, menuItem.path)}
+                        className="gap-4 p-2"
+                      >
+                        <IconComponent className="size-4" />
+                        <span>{menuItem.name}</span>
+                      </DropdownMenuItem>
+                    )
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
           )
         })}
         <SidebarMenuItem>
-          <SidebarMenuButton 
+          <SidebarMenuButton
             className="text-sidebar-foreground/70"
             onClick={() => setActiveModal('create-project')}
           >

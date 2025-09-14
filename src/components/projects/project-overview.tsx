@@ -152,6 +152,26 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
           
+
+          <Card>
+             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-center">
+                Project overview
+              </CardTitle>
+              <div className="p-2 rounded-md bg-blue-50">
+                <Clock className="h-4 w-4 text-blue-600"/>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  {project.description || "No description available for this project. Click edit to add a detailed description of the project goals, requirements, and objectives."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+
           {/* Progress Overview */}
           <Card>
              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -223,29 +243,24 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Project Description */}
+                    {/* Project Description */}
           <Card>
-             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Project overview
-              </CardTitle>
-              <div className="p-2 rounded-md bg-blue-50">
-                <Clock className="h-4 w-4 text-blue-600"/>
-              </div>
-            </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  {project.description || "No description available for this project. Click edit to add a detailed description of the project goals, requirements, and objectives."}
-                </p>
-              </div>
-              <div className="mt-4">
-                <Button variant="outline" size="sm">
-                  Edit Description
+              <div className="flex flex-col gap-2">
+                <Button variant="default" size="lg">
+                  Open editor
+                </Button>
+                <Button variant="default" size="lg">
+                  Analyze site
+                </Button>
+                <Button variant="default" size="lg">
+                  Summarize project
                 </Button>
               </div>
             </CardContent>
           </Card>
+          {/* Project Description */}
+
 
           {/* Quick Stats */}
           <div className="space-y-4">

@@ -1,20 +1,11 @@
+// components/global/app-sidebar.tsx - Cleaned
+
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
-  LayoutDashboard,
+  SquareKanban,
   FolderOpen,
   CheckSquare,
   FileImage,
@@ -22,16 +13,13 @@ import {
   Settings,
   FileText,
   Plug,
-  Plus,
-  Calendar,
   Circle,
-  ChevronRight,
 } from "lucide-react"
 
 import { NavMain } from "@/components/global/nav-main"
 import { NavProjects } from "@/components/global/nav-projects"
 import { NavUser } from "@/components/global/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavOrganization } from "@/components/global/nav-organization"
 import { NavSecondary } from "@/components/global/nav-secondary"
 import {
   Sidebar,
@@ -42,14 +30,13 @@ import {
 } from "@/components/ui/sidebar"
 import { getActiveProjects } from "@/lib/utils/dummy-data"
 
-// This is sample data for the sidebar
 const data = {
   user: {
     name: "Current User",
     email: "user@droplog.com",
     avatar: "/avatars/current-user.png",
   },
-  teams: [
+  organization: [
     {
       name: "Droplog",
       logo: GalleryVerticalEnd,
@@ -60,7 +47,7 @@ const data = {
     {
       title: "Workspace",
       url: "/app/workspace",
-      icon: LayoutDashboard,
+      icon: SquareKanban,
     },
     {
       title: "Projects",
@@ -113,7 +100,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <NavOrganization organizations={data.organization} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

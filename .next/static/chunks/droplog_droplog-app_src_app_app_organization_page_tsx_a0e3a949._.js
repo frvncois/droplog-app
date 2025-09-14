@@ -8,6 +8,7 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/node_modules/next/navigation.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/src/components/ui/card.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/src/components/ui/button.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/droplog/droplog-app/src/components/ui/badge.tsx [app-client] (ecmascript)");
@@ -33,6 +34,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f
 ;
 var _s = __turbopack_context__.k.signature();
 'use client';
+;
 ;
 ;
 ;
@@ -120,7 +122,27 @@ const recentActivity = [
 ];
 function OrganizationPage() {
     _s();
-    const [activeTab, setActiveTab] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('overview');
+    const searchParams = (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"])();
+    const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    // Get tab from URL params, default to 'overview'
+    const urlTab = searchParams.get('tab') || 'overview';
+    const [activeTab, setActiveTab] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(urlTab);
+    // Update activeTab when URL changes
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "OrganizationPage.useEffect": ()=>{
+            const tabFromUrl = searchParams.get('tab') || 'overview';
+            setActiveTab(tabFromUrl);
+        }
+    }["OrganizationPage.useEffect"], [
+        searchParams
+    ]);
+    // Update URL when tab changes
+    const handleTabChange = (newTab)=>{
+        setActiveTab(newTab);
+        // Update URL without adding to history
+        const newUrl = newTab === 'overview' ? '/organization' : "/organization?tab=".concat(newTab);
+        router.replace(newUrl);
+    };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "space-y-6 p-6",
         children: [
@@ -134,7 +156,7 @@ function OrganizationPage() {
                                 children: "Organization"
                             }, void 0, false, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 112,
+                                lineNumber: 132,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -142,13 +164,13 @@ function OrganizationPage() {
                                 children: "Manage your team, projects, and organization settings"
                             }, void 0, false, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 113,
+                                lineNumber: 133,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 111,
+                        lineNumber: 131,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -162,14 +184,14 @@ function OrganizationPage() {
                                         className: "h-4 w-4 mr-2"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 119,
+                                        lineNumber: 139,
                                         columnNumber: 13
                                     }, this),
                                     "Invite Members"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 118,
+                                lineNumber: 138,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -179,26 +201,26 @@ function OrganizationPage() {
                                         className: "h-4 w-4 mr-2"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 123,
+                                        lineNumber: 143,
                                         columnNumber: 13
                                     }, this),
                                     "Create Project"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 122,
+                                lineNumber: 142,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 117,
+                        lineNumber: 137,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                lineNumber: 110,
+                lineNumber: 130,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -217,7 +239,7 @@ function OrganizationPage() {
                                                 children: "Team Members"
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 135,
+                                                lineNumber: 155,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -225,36 +247,36 @@ function OrganizationPage() {
                                                 children: organizationStats.totalMembers
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 136,
+                                                lineNumber: 156,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 134,
+                                        lineNumber: 154,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__["Users"], {
                                         className: "h-8 w-8 text-blue-500"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 138,
+                                        lineNumber: 158,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 133,
+                                lineNumber: 153,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 132,
+                            lineNumber: 152,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 131,
+                        lineNumber: 151,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -270,7 +292,7 @@ function OrganizationPage() {
                                                 children: "Active Projects"
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 147,
+                                                lineNumber: 167,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -278,36 +300,36 @@ function OrganizationPage() {
                                                 children: organizationStats.activeProjects
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 148,
+                                                lineNumber: 168,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 146,
+                                        lineNumber: 166,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$folder$2d$open$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__FolderOpen$3e$__["FolderOpen"], {
                                         className: "h-8 w-8 text-green-500"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 150,
+                                        lineNumber: 170,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 145,
+                                lineNumber: 165,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 144,
+                            lineNumber: 164,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 143,
+                        lineNumber: 163,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -323,7 +345,7 @@ function OrganizationPage() {
                                                 children: "Pending Tasks"
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 159,
+                                                lineNumber: 179,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -331,36 +353,36 @@ function OrganizationPage() {
                                                 children: organizationStats.pendingTasks
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 160,
+                                                lineNumber: 180,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 158,
+                                        lineNumber: 178,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$activity$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Activity$3e$__["Activity"], {
                                         className: "h-8 w-8 text-orange-500"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 162,
+                                        lineNumber: 182,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 157,
+                                lineNumber: 177,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 156,
+                            lineNumber: 176,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 155,
+                        lineNumber: 175,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -376,7 +398,7 @@ function OrganizationPage() {
                                                 children: "Storage Used"
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 171,
+                                                lineNumber: 191,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -384,7 +406,7 @@ function OrganizationPage() {
                                                 children: organizationStats.storageUsed
                                             }, void 0, false, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 172,
+                                                lineNumber: 192,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -395,47 +417,47 @@ function OrganizationPage() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                lineNumber: 173,
+                                                lineNumber: 193,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 170,
+                                        lineNumber: 190,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trending$2d$up$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__TrendingUp$3e$__["TrendingUp"], {
                                         className: "h-8 w-8 text-purple-500"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 175,
+                                        lineNumber: 195,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 169,
+                                lineNumber: 189,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 168,
+                            lineNumber: 188,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 167,
+                        lineNumber: 187,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                lineNumber: 130,
+                lineNumber: 150,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Tabs"], {
                 value: activeTab,
-                onValueChange: setActiveTab,
+                onValueChange: handleTabChange,
                 className: "space-y-6",
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsList"], {
@@ -449,14 +471,14 @@ function OrganizationPage() {
                                         className: "h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 185,
+                                        lineNumber: 205,
                                         columnNumber: 13
                                     }, this),
                                     "Overview"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 184,
+                                lineNumber: 204,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsTrigger"], {
@@ -467,14 +489,14 @@ function OrganizationPage() {
                                         className: "h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 189,
+                                        lineNumber: 209,
                                         columnNumber: 13
                                     }, this),
                                     "Team"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 188,
+                                lineNumber: 208,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsTrigger"], {
@@ -485,14 +507,14 @@ function OrganizationPage() {
                                         className: "h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 193,
+                                        lineNumber: 213,
                                         columnNumber: 13
                                     }, this),
                                     "Projects"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 192,
+                                lineNumber: 212,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsTrigger"], {
@@ -503,14 +525,14 @@ function OrganizationPage() {
                                         className: "h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 197,
+                                        lineNumber: 217,
                                         columnNumber: 13
                                     }, this),
                                     "Notifications"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 196,
+                                lineNumber: 216,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsTrigger"], {
@@ -521,14 +543,14 @@ function OrganizationPage() {
                                         className: "h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 201,
+                                        lineNumber: 221,
                                         columnNumber: 13
                                     }, this),
                                     "Plan & Billing"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 200,
+                                lineNumber: 220,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsTrigger"], {
@@ -539,20 +561,20 @@ function OrganizationPage() {
                                         className: "h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 205,
+                                        lineNumber: 225,
                                         columnNumber: 13
                                     }, this),
                                     "Settings"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                lineNumber: 204,
+                                lineNumber: 224,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 183,
+                        lineNumber: 203,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsContent"], {
@@ -567,12 +589,12 @@ function OrganizationPage() {
                                         activities: recentActivity
                                     }, void 0, false, {
                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                        lineNumber: 214,
+                                        lineNumber: 234,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                    lineNumber: 213,
+                                    lineNumber: 233,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -588,19 +610,19 @@ function OrganizationPage() {
                                                                 className: "h-5 w-5"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                lineNumber: 222,
+                                                                lineNumber: 242,
                                                                 columnNumber: 21
                                                             }, this),
                                                             "Plan Details"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                        lineNumber: 221,
+                                                        lineNumber: 241,
                                                         columnNumber: 19
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                    lineNumber: 220,
+                                                    lineNumber: 240,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CardContent"], {
@@ -614,7 +636,7 @@ function OrganizationPage() {
                                                                     children: "Current Plan"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 228,
+                                                                    lineNumber: 248,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
@@ -622,13 +644,13 @@ function OrganizationPage() {
                                                                     children: organizationStats.plan
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 229,
+                                                                    lineNumber: 249,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                            lineNumber: 227,
+                                                            lineNumber: 247,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -639,7 +661,7 @@ function OrganizationPage() {
                                                                     children: "Billing Cycle"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 232,
+                                                                    lineNumber: 252,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -647,13 +669,13 @@ function OrganizationPage() {
                                                                     children: organizationStats.billingCycle
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 233,
+                                                                    lineNumber: 253,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                            lineNumber: 231,
+                                                            lineNumber: 251,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -664,7 +686,7 @@ function OrganizationPage() {
                                                                     children: "Next Billing"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 236,
+                                                                    lineNumber: 256,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -672,13 +694,13 @@ function OrganizationPage() {
                                                                     children: organizationStats.nextBilling
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 237,
+                                                                    lineNumber: 257,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                            lineNumber: 235,
+                                                            lineNumber: 255,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -690,26 +712,26 @@ function OrganizationPage() {
                                                                     className: "h-4 w-4 mr-2"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 240,
+                                                                    lineNumber: 260,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 "Manage Billing"
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                            lineNumber: 239,
+                                                            lineNumber: 259,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                    lineNumber: 226,
+                                                    lineNumber: 246,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                            lineNumber: 219,
+                                            lineNumber: 239,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -722,19 +744,19 @@ function OrganizationPage() {
                                                                 className: "h-5 w-5"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                lineNumber: 249,
+                                                                lineNumber: 269,
                                                                 columnNumber: 21
                                                             }, this),
                                                             "Quick Stats"
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                        lineNumber: 248,
+                                                        lineNumber: 268,
                                                         columnNumber: 19
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                    lineNumber: 247,
+                                                    lineNumber: 267,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CardContent"], {
@@ -748,7 +770,7 @@ function OrganizationPage() {
                                                                     children: "Completed Projects"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 255,
+                                                                    lineNumber: 275,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
@@ -756,13 +778,13 @@ function OrganizationPage() {
                                                                     children: organizationStats.completedProjects
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 256,
+                                                                    lineNumber: 276,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                            lineNumber: 254,
+                                                            lineNumber: 274,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -773,7 +795,7 @@ function OrganizationPage() {
                                                                     children: "Storage Usage"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 259,
+                                                                    lineNumber: 279,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -788,7 +810,7 @@ function OrganizationPage() {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                            lineNumber: 261,
+                                                                            lineNumber: 281,
                                                                             columnNumber: 23
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -800,129 +822,134 @@ function OrganizationPage() {
                                                                                 }
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                                lineNumber: 263,
+                                                                                lineNumber: 283,
                                                                                 columnNumber: 25
                                                                             }, this)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                            lineNumber: 262,
+                                                                            lineNumber: 282,
                                                                             columnNumber: 23
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                                    lineNumber: 260,
+                                                                    lineNumber: 280,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                            lineNumber: 258,
+                                                            lineNumber: 278,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                                    lineNumber: 253,
+                                                    lineNumber: 273,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                            lineNumber: 246,
+                                            lineNumber: 266,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                                    lineNumber: 218,
+                                    lineNumber: 238,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 211,
+                            lineNumber: 231,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 210,
+                        lineNumber: 230,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsContent"], {
                         value: "team",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$organization$2f$organization$2d$team$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["OrganizationTeam"], {}, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 274,
+                            lineNumber: 294,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 273,
+                        lineNumber: 293,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsContent"], {
                         value: "projects",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$organization$2f$organization$2d$projects$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["OrganizationProjects"], {}, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 278,
+                            lineNumber: 298,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 277,
+                        lineNumber: 297,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsContent"], {
                         value: "notifications",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$organization$2f$organization$2d$notifications$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["OrganizationNotifications"], {}, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 282,
+                            lineNumber: 302,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 281,
+                        lineNumber: 301,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsContent"], {
                         value: "plan",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$organization$2f$organization$2d$plan$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["OrganizationPlan"], {}, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 286,
+                            lineNumber: 306,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 285,
+                        lineNumber: 305,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TabsContent"], {
                         value: "settings",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$organization$2f$organization$2d$settings$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["OrganizationSettings"], {}, void 0, false, {
                             fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                            lineNumber: 290,
+                            lineNumber: 310,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                        lineNumber: 289,
+                        lineNumber: 309,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-                lineNumber: 182,
+                lineNumber: 202,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/droplog/droplog-app/src/app/app/organization/page.tsx",
-        lineNumber: 108,
+        lineNumber: 128,
         columnNumber: 5
     }, this);
 }
-_s(OrganizationPage, "chU/96YDf6tpLdqvgqS2ZL+A4Bo=");
+_s(OrganizationPage, "EMpHtBdpK8Spk1sOSph6fC17Abo=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"],
+        __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
+    ];
+});
 _c = OrganizationPage;
 var _c;
 __turbopack_context__.k.register(_c, "OrganizationPage");

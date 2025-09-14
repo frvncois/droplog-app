@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -102,7 +103,26 @@ const recentActivity = [
 ]
 
 export default function OrganizationPage() {
-  const [activeTab, setActiveTab] = useState('overview')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // Get tab from URL params, default to 'overview'
+  const urlTab = searchParams.get('tab') || 'overview'
+  const [activeTab, setActiveTab] = useState(urlTab)
+
+  // Update activeTab when URL changes
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'overview'
+    setActiveTab(tabFromUrl)
+  }, [searchParams])
+
+  // Update URL when tab changes
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab)
+    // Update URL without adding to history
+    const newUrl = newTab === 'overview' ? '/organization' : `/organization?tab=${newTab}`
+    router.replace(newUrl)
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -179,7 +199,7 @@ export default function OrganizationPage() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
