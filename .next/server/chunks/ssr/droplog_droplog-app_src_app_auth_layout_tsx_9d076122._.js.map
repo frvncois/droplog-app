@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///Users/frvncois/Documents/DEV/droplog/droplog-app/src/app/auth/layout.tsx"],"sourcesContent":["export default function AuthLayout({\n  children,\n}: {\n  children: React.ReactNode;\n}) {\n  return (\n    <div className=\"min-h-screen flex items-center justify-center p-8\">\n      <div className=\"w-full max-w-md space-y-8\">\n        <div className=\"text-center\">\n          <h1 className=\"text-3xl font-bold\">Droplog</h1>\n          <p className=\"text-muted-foreground mt-2\">\n            Project management made simple\n          </p>\n        </div>\n        {children}\n      </div>\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;;AAAe,SAAS,WAAW,EACjC,QAAQ,EAGT;IACC,qBACE,2QAAC;QAAI,WAAU;kBACb,cAAA,2QAAC;YAAI,WAAU;;8BACb,2QAAC;oBAAI,WAAU;;sCACb,2QAAC;4BAAG,WAAU;sCAAqB;;;;;;sCACnC,2QAAC;4BAAE,WAAU;sCAA6B;;;;;;;;;;;;gBAI3C;;;;;;;;;;;;AAIT","debugId":null}}]
-}
