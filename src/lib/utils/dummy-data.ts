@@ -249,7 +249,7 @@ export const team: TeamMember[] = [
     name: "Alice Johnson",
     email: "alice@example.com",
     role: "designer",
-    avatarUrl: "/avatars/alice.png",
+    avatarUrl: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
     status: "active",
     joinedAt: "2025-01-15T10:00:00Z"
   },
@@ -258,7 +258,7 @@ export const team: TeamMember[] = [
     name: "Bob Smith",
     email: "bob@example.com",
     role: "developer",
-    avatarUrl: "/avatars/bob.png",
+    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
     status: "active",
     joinedAt: "2025-02-20T09:00:00Z"
   },
@@ -267,7 +267,7 @@ export const team: TeamMember[] = [
     name: "Carol Davis",
     email: "carol@example.com",
     role: "content_writer",
-    avatarUrl: "/avatars/carol.png",
+    avatarUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
     status: "active",
     joinedAt: "2025-03-10T11:00:00Z"
   },
@@ -276,7 +276,7 @@ export const team: TeamMember[] = [
     name: "David Wilson",
     email: "david@example.com",
     role: "designer",
-    avatarUrl: "/avatars/david.png",
+    avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
     status: "active",
     joinedAt: "2025-04-05T08:00:00Z"
   },
@@ -285,7 +285,7 @@ export const team: TeamMember[] = [
     name: "Emma Brown",
     email: "emma@example.com",
     role: "manager",
-    avatarUrl: "/avatars/emma.png",
+    avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
     status: "active",
     joinedAt: "2025-01-08T09:00:00Z"
   },
@@ -294,7 +294,7 @@ export const team: TeamMember[] = [
     name: "Frank Miller",
     email: "frank@example.com",
     role: "developer",
-    avatarUrl: "/avatars/frank.png",
+    avatarUrl: "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=150&h=150&fit=crop&crop=face",
     status: "active",
     joinedAt: "2025-05-12T10:00:00Z"
   },
@@ -303,13 +303,11 @@ export const team: TeamMember[] = [
     name: "Grace Lee",
     email: "grace@example.com",
     role: "admin",
-    avatarUrl: "/avatars/grace.png",
+    avatarUrl: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face",
     status: "active",
     joinedAt: "2025-01-01T08:00:00Z"
   }
 ];
-
-// Add these to your existing /lib/utils/dummy-data.ts file
 
 // Help Articles
 export const helpArticles = [

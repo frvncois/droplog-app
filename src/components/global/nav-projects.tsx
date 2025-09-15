@@ -19,7 +19,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useUIStore } from "@/lib/stores/ui-store"
 
 const projectMenuItems = [
   {
@@ -63,7 +62,6 @@ export function NavProjects({
   const { isMobile } = useSidebar()
   const pathname = usePathname()
   const router = useRouter()
-  const { setActiveModal } = useUIStore()
 
   const handleNavigateToProject = (projectUrl: string, path: string) => {
     const fullUrl = path === "" ? projectUrl : `${projectUrl}${path}`
@@ -129,7 +127,7 @@ export function NavProjects({
         <SidebarMenuItem>
           <SidebarMenuButton
             className="text-sidebar-foreground/70"
-            onClick={() => setActiveModal('create-project')}
+            onClick={() => console.log('Create project - not implemented')}
           >
             <Plus className="text-sidebar-foreground/70" />
             <span>New Project</span>

@@ -1,3 +1,5 @@
+// app/projects/[id]/page.tsx
+
 import { ProjectsHeader } from "@/components/projects/projects-header";
 import { ProjectsDataTable } from "@/components/projects/projects-data-table";
 import { ProjectsStats } from "@/components/projects/projects-stats";

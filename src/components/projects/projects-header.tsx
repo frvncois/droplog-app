@@ -1,6 +1,5 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { useUIStore } from '@/lib/stores/ui-store'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 
 export function ProjectsHeader() {
-  const { setActiveModal } = useUIStore()
 
   return (
     <div className="space-y-4">
@@ -33,14 +31,14 @@ export function ProjectsHeader() {
         </div>
         <div className="space-y-0">
           <div className="flex items-center space-x-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setActiveModal('create-project')}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create project
-            </Button>
+<Button
+  variant="default"
+  size="sm"
+  onClick={() => console.log('Create project clicked')}
+>
+  <Plus className="h-4 w-4 mr-2" />
+  Create project
+</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">

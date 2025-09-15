@@ -135,6 +135,7 @@ __turbopack_context__.n(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$
 "[project]/droplog/droplog-app/src/app/app/projects/page.tsx [app-rsc] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
+// app/projects/[id]/page.tsx
 __turbopack_context__.s([
     "default",
     ()=>ProjectsPage
@@ -153,23 +154,23 @@ function ProjectsPage() {
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$projects$2f$projects$2d$header$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["ProjectsHeader"], {}, void 0, false, {
                 fileName: "[project]/droplog/droplog-app/src/app/app/projects/page.tsx",
-                lineNumber: 9,
+                lineNumber: 11,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$projects$2f$projects$2d$stats$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["ProjectsStats"], {}, void 0, false, {
                 fileName: "[project]/droplog/droplog-app/src/app/app/projects/page.tsx",
-                lineNumber: 12,
+                lineNumber: 14,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$droplog$2f$droplog$2d$app$2f$src$2f$components$2f$projects$2f$projects$2d$data$2d$table$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["ProjectsDataTable"], {}, void 0, false, {
                 fileName: "[project]/droplog/droplog-app/src/app/app/projects/page.tsx",
-                lineNumber: 15,
+                lineNumber: 17,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/droplog/droplog-app/src/app/app/projects/page.tsx",
-        lineNumber: 7,
+        lineNumber: 9,
         columnNumber: 5
     }, this);
 }
