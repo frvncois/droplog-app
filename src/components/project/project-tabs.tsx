@@ -7,7 +7,7 @@ import { ProjectTasksList } from "./project-tasks-list";
 import { ProjectAssetsList } from "./project-assets-list";
 import { ProjectContentList } from "./project-content-list";
 import { ProjectTeamList } from "./project-team-list";
-import { ProjectDocumentation } from '@/components/projects/project-documentation'
+import { ProjectDocumentation } from '@/components/project/project-documentation'
 import { ProjectSettings } from "./project-settings";
 import { 
   FileText, 

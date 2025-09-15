@@ -33,7 +33,7 @@ import {
 } from "@/lib/utils/dummy-data";
 import { format } from "date-fns";
 import Link from "next/link";
-import { ProjectWrittenSummary } from "@/components/projects/project-written-summary";
+import { ProjectWrittenSummary } from "@/components/project/project-written-summary";
 
 interface ProjectOverviewProps {
   project: Project;

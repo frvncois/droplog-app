@@ -2,7 +2,7 @@
 
 import { notFound } from "next/navigation";
 import { getProjectById } from "@/lib/utils/dummy-data";
-import { ProjectTabs } from "@/components/projects/project-tabs";
+import { ProjectTabs } from "@/components/project/project-tabs";
 
 interface ProjectPageProps {
   params: Promise<{ id: string }>;
@@ -18,7 +18,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="space-y-6 p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">{project.title}</h1>
         {project.description && (

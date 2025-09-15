@@ -1,3 +1,5 @@
+// components/projects/projects-data-table.tsx
+
 "use client";
 
 import * as React from "react";
@@ -13,13 +15,46 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
+  Row,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal, ExternalLink, Users, Settings, Archive, MoreVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  UniqueIdentifier,
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { 
+  ExternalLink, 
+  Users, 
+  Settings, 
+  Archive, 
+  MoreVertical,
+  Eye,
+  Search,
+  Filter,
+  SortAsc,
+  Grid,
+  List,
+  GripVertical,
+  Info
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -47,11 +82,12 @@ import {
 } from "@/components/ui/select";
 import { 
   Project,
-  projects,
+  projects as originalProjects,
   getTasksByProjectId,
   getTeamMemberById 
 } from "@/lib/utils/dummy-data";
-import { format } from "date-fns";
+import { formatRelativeTime } from "@/lib/utils";
+import { ProjectOverviewModal } from "@/components/modals/project-overview-modal";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -66,200 +102,318 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const projectColumns: ColumnDef<Project>[] = [
-  {
-    accessorKey: "title",
-    header: ({ column }) => {
-      return (
-        <div className="text-left">
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-medium text-left justify-start"
-          >
-            Project Name
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      );
-    },
-    cell: ({ row }) => {
-      const project = row.original;
-      
-      return (
-        <div className="flex flex-col space-y-0 p-2">
-          <Link 
-            href={`/app/projects/${project.id}`}
-            className="font-medium hover:text-primary transition-colors cursor-pointer"
-          >
-            {project.title}
-          </Link>
-          <div className="text-sm text-muted-foreground line-clamp-1">
-            {project.description || "No description"}
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      return (
-        <Badge className={getStatusColor(status)}>
-          {status}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "assignedTo",
-    header: "Team",
-    cell: ({ row }) => {
-      const assignedTo = row.getValue("assignedTo") as string[];
-      
-      if (!assignedTo || assignedTo.length === 0) {
-        return <div className="text-muted-foreground">No team assigned</div>;
-      }
-      
-      return (
-        <div className="flex items-center space-x-1">
-          <Users className="h-3 w-3 text-muted-foreground" />
-          <div className="flex -space-x-1">
-            {assignedTo.slice(0, 3).map((memberId) => {
-              const member = getTeamMemberById(memberId);
-              if (!member) return null;
-              
-              return (
-                <Avatar key={memberId} className="h-6 w-6 border border-background">
-                  <AvatarImage src={member.avatarUrl} />
-                  <AvatarFallback className="text-xs">
-                    {member.name.split(" ").map(n => n[0]).join("")}
-                  </AvatarFallback>
-                </Avatar>
-              );
-            })}
-            {assignedTo.length > 3 && (
-              <div className="h-6 w-6 rounded-full bg-muted border border-background flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">
-                  +{assignedTo.length - 3}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "tasksCount",
-    header: "Tasks",
-    cell: ({ row }) => {
-      const project = row.original;
-      const projectTasks = getTasksByProjectId(project.id);
-      const activeTasks = projectTasks.filter(t => t.status !== "completed");
-      
-      return (
-        <div className="flex flex-col">
-          <div className="font-medium">{projectTasks.length} total</div>
-          <div className="text-sm text-muted-foreground">
-            {activeTasks.length} active
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "updatedAt",
-    header: ({ column }) => {
-      return (
-        <div className="text-left">
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-medium text-left justify-start"
-          >
-            Last Updated
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      );
-    },
-    cell: ({ row }) => {
-      const updatedAt = row.getValue("updatedAt") as string;
-      const date = new Date(updatedAt);
-      
-      return (
-        <div className="flex flex-col">
-          <div className="font-medium">{format(date, "MMM d, yyyy")}</div>
-          <div className="text-sm text-muted-foreground">
-            {format(date, "h:mm a")}
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const project = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <Link href={`/app/projects/${project.id}`}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View Project
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/app/projects/${project.id}`}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open in editor
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/app/projects/${project.id}/settings`}>
-                <Settings className="mr-2 h-4 w-4" />
-                Project Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-500">
-              <Archive className="mr-2 h-4 w-4 text-red-500" />
-              Delete project
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
+// Status filter options
+const statusOptions = [
+  { value: "all", label: "All Status" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "archived", label: "Archived" },
 ];
 
-export function ProjectsDataTable() {
+// Sort options
+const sortOptions = [
+  { value: "updatedAt", label: "Last Updated" },
+  { value: "createdAt", label: "Created Date" },
+  { value: "title", label: "Name A-Z" },
+  { value: "tasksCount", label: "Task Count" },
+];
+
+// Drag handle component following Shadcn pattern
+function DragHandle({ id }: { id: string }) {
+  const { attributes, listeners } = useSortable({
+    id,
+  });
+
+  return (
+    <div
+      {...attributes}
+      {...listeners}
+      className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1"
+    >
+      <GripVertical className="h-3 w-3" />
+      <span className="sr-only">Drag to reorder</span>
+    </div>
+  );
+}
+
+// Draggable row component following Shadcn pattern
+function DraggableRow({ row }: { row: Row<Project> }) {
+  const { transform, transition, setNodeRef, isDragging } = useSortable({
+    id: row.original.id,
+  });
+
+  return (
+    <TableRow
+      data-state={row.getIsSelected() && "selected"}
+      data-dragging={isDragging}
+      ref={setNodeRef}
+      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 hover:bg-muted/50"
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: transition,
+      }}
+    >
+      {row.getVisibleCells().map((cell) => (
+        <TableCell key={cell.id}>
+          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
+interface ProjectsDataTableProps {
+  projects?: Project[];
+}
+
+export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTableProps = {}) {
+  const [data, setData] = React.useState(() => externalProjects || originalProjects);
+
+  // Update data when external projects change
+  React.useEffect(() => {
+    if (externalProjects) {
+      setData(externalProjects);
+    }
+  }, [externalProjects]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [sortBy, setSortBy] = React.useState("updatedAt");
+  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
-  // Filter projects based on status
-  const filteredProjects = React.useMemo(() => {
-    if (statusFilter === "all") return projects;
-    return projects.filter(project => project.status === statusFilter);
-  }, [statusFilter]);
+  // Project Overview Modal state
+  const [selectedProject, setSelectedProject] = React.useState<Project | null>(null);
+  const [isOverviewModalOpen, setIsOverviewModalOpen] = React.useState(false);
+
+  // Drag and drop setup
+  const sortableId = React.useId();
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const dataIds = React.useMemo<UniqueIdentifier[]>(
+    () => data?.map(({ id }) => id) || [],
+    [data]
+  );
+
+  // Handle drag end
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (active && over && active.id !== over.id) {
+      setData((data) => {
+        const oldIndex = dataIds.indexOf(active.id);
+        const newIndex = dataIds.indexOf(over.id);
+        return arrayMove(data, oldIndex, newIndex);
+      });
+    }
+  }
+
+  // Function to open project overview modal
+  const openProjectOverview = (project: Project) => {
+    setSelectedProject(project);
+    setIsOverviewModalOpen(true);
+  };
+
+  // Filter and sort projects
+  const filteredAndSortedProjects = React.useMemo(() => {
+    let filtered = data;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(project =>
+        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(project => project.status === statusFilter);
+    }
+
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "createdAt":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "updatedAt":
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        case "tasksCount":
+          return b.tasksCount - a.tasksCount;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [data, searchTerm, statusFilter, sortBy]);
+
+  const projectColumns: ColumnDef<Project>[] = [
+    {
+      id: "drag",
+      header: () => null,
+      cell: ({ row }) => <DragHandle id={row.original.id} />,
+      enableSorting: false,
+      enableHiding: false,
+      size: 24,
+    },
+    {
+      accessorKey: "title",
+      header: "Project",
+      cell: ({ row }) => {
+        const project = row.original;
+        
+        return (
+          <div className="flex flex-col space-y-0 p-2">
+            <Link 
+              href={`/app/projects/${project.id}`}
+              className="font-medium hover:text-primary transition-colors cursor-pointer"
+            >
+              {project.title}
+            </Link>
+            <div className="text-sm text-muted-foreground line-clamp-1">
+              {project.description || "No description"}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        return (
+          <Badge className={getStatusColor(status)}>
+            {status}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "assignedTo",
+      header: "Team",
+      cell: ({ row }) => {
+        const assignedTo = row.getValue("assignedTo") as string[];
+        
+        if (!assignedTo || assignedTo.length === 0) {
+          return <div className="text-muted-foreground">No team assigned</div>;
+        }
+        
+        return (
+          <div className="flex items-center space-x-1">
+            <div className="flex -space-x-1">
+              {assignedTo.slice(0, 3).map((memberId) => {
+                const member = getTeamMemberById(memberId);
+                if (!member) return null;
+                
+                return (
+                  <Avatar key={memberId} className="h-6 w-6 border border-background">
+                    <AvatarImage src={member.avatarUrl} />
+                    <AvatarFallback className="text-xs">
+                      {member.name.split(" ").map(n => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                );
+              })}
+              {assignedTo.length > 3 && (
+                <div className="h-6 w-6 rounded-full bg-muted border border-background flex items-center justify-center">
+                  <span className="text-xs text-muted-foreground">
+                    +{assignedTo.length - 3}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "tasksCount",
+      header: "Tasks",
+      cell: ({ row }) => {
+        const project = row.original;
+        const projectTasks = getTasksByProjectId(project.id);
+        const activeTasks = projectTasks.filter(t => t.status !== "completed");
+        
+        return (
+          <div className="flex flex-col">
+            <div className="font-medium">
+              {activeTasks.length} active
+            </div>
+            <div className="text-muted-foreground">{projectTasks.length} total</div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "updatedAt",
+      header: "Last updated",
+      cell: ({ row }) => {
+        const updatedAt = row.getValue("updatedAt") as string;
+        
+        return (
+          <div className="flex flex-col">
+            <div>{formatRelativeTime(updatedAt)}</div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const project = row.original;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => openProjectOverview(project)}>
+                <Info className="mr-2 h-4 w-4" />
+                Project details
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/app/projects/${project.id}`}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View project
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/app/projects/${project.id}`}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Open in editor
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-red-500">
+                <Archive className="mr-2 h-4 w-4 text-red-500" />
+                Delete project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
 
   const table = useReactTable({
-    data: filteredProjects,
+    data: filteredAndSortedProjects,
     columns: projectColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -268,6 +422,7 @@ export function ProjectsDataTable() {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
+    getRowId: (row) => row.id,
     state: {
       sorting,
       columnFilters,
@@ -277,110 +432,265 @@ export function ProjectsDataTable() {
 
   return (
     <div className="w-full flex flex-col gap-4">
-      <div className="flex items-center gap-4">
-        <Input
-          placeholder="Search projects..."
-          value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("title")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
+      {/* Filters and Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-4">
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[200px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Sort */}
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[200px]">
+              <SortAsc className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* View Mode Toggle */}
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="rounded-r-none"
+            >
+              <Grid className="h-4 w-4" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {searchTerm && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Search: "{searchTerm}"
+            <button
+              onClick={() => setSearchTerm('')}
+              className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
       </div>
       
-      <div className="overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+      {/* Conditional rendering based on view mode */}
+      {viewMode === 'list' ? (
+        <div className="overflow-hidden rounded-lg border">
+          <DndContext
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEnd}
+            sensors={sensors}
+            id={sortableId}
+          >
+            <Table>
+              <TableHeader className="bg-muted sticky top-0 z-10">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead key={header.id} colSpan={header.colSpan}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  <SortableContext
+                    items={dataIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {table.getRowModel().rows.map((row) => (
+                      <DraggableRow key={row.id} row={row} />
+                    ))}
+                  </SortableContext>
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={projectColumns.length}
+                      className="h-24 text-center"
+                    >
+                      No projects found.
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={projectColumns.length}
-                  className="h-24 text-center"
-                >
-                  No projects found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </DndContext>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAndSortedProjects.length > 0 ? (
+            filteredAndSortedProjects.map((project) => {
+              const projectTasks = getTasksByProjectId(project.id);
+              const activeTasks = projectTasks.filter(t => t.status !== "completed");
+              
+              return (
+                <Card key={project.id} className="group hover:shadow-md transition-all duration-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <Link href={`/app/projects/${project.id}`}>
+                            <CardTitle className="text-lg hover:text-primary transition-colors">
+                              {project.title}
+                            </CardTitle>
+                          </Link>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openProjectOverview(project)}>
+                                <Info className="mr-2 h-4 w-4" />
+                                Project details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/app/projects/${project.id}`}>
+                                  <ExternalLink className="mr-2 h-4 w-4" />
+                                  View Project
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/app/projects/${project.id}/settings`}>
+                                  <Settings className="mr-2 h-4 w-4" />
+                                  Settings
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-500">
+                                <Archive className="mr-2 h-4 w-4 text-red-500" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div className="mt-2">
+                          <Badge className={getStatusColor(project.status)}>
+                            {project.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                          {project.description || "No description"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      {/* Team Members */}
+                      {project.assignedTo && project.assignedTo.length > 0 && (
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex -space-x-1">
+                            {project.assignedTo.slice(0, 3).map((memberId) => {
+                              const member = getTeamMemberById(memberId);
+                              if (!member) return null;
+                              
+                              return (
+                                <Avatar key={memberId} className="h-6 w-6 border border-background">
+                                  <AvatarImage src={member.avatarUrl} />
+                                  <AvatarFallback className="text-xs">
+                                    {member.name.split(" ").map(n => n[0]).join("")}
+                                  </AvatarFallback>
+                                </Avatar>
+                              );
+                            })}
+                            {project.assignedTo.length > 3 && (
+                              <div className="h-6 w-6 rounded-full bg-muted border border-background flex items-center justify-center">
+                                <span className="text-xs text-muted-foreground">
+                                  +{project.assignedTo.length - 3}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Tasks Info */}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="text-muted-foreground">
+                          {projectTasks.length} tasks, {activeTasks.length} active
+                        </div>
+                        <div className="text-muted-foreground">
+                          {formatRelativeTime(project.updatedAt)}
+                        </div>
+                      </div>
+                      
+                      {/* Open Project Button */}
+                      <Button asChild className="w-full">
+                        <Link href={`/app/projects/${project.id}`}>
+                          Open Project
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="col-span-full flex items-center justify-center h-32 text-muted-foreground">
+              No projects found.
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-muted-foreground flex-1 text-sm">
-          Showing {table.getFilteredRowModel().rows.length} of {filteredProjects.length} projects.
+          Showing {table.getRowModel().rows.length} of {filteredAndSortedProjects.length} projects.
         </div>
         <div className="space-x-2">
           <Button
@@ -401,6 +711,13 @@ export function ProjectsDataTable() {
           </Button>
         </div>
       </div>
+
+      {/* Project Overview Modal */}
+      <ProjectOverviewModal
+        project={selectedProject}
+        open={isOverviewModalOpen}
+        onOpenChange={setIsOverviewModalOpen}
+      />
     </div>
   );
 }
