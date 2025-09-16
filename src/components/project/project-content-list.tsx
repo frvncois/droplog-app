@@ -1,3 +1,5 @@
+// components/projects/project-content-list.tsx
+
 "use client";
 
 import * as React from "react";
@@ -12,14 +14,52 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
+  Row,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Plus, Filter, Eye, Edit, Copy, Trash2, BookOpen, Mail, MessageSquare, FileText } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  UniqueIdentifier,
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { 
+  Plus,
+  MoreVertical,
+  Eye,
+  Search,
+  Filter,
+  SortAsc,
+  Grid,
+  List,
+  GripVertical,
+  Edit,
+  Copy,
+  Trash2,
+  FileText,
+  User,
+  Calendar,
+  Check,
+  Clock,
+  Wand2,
+  Languages,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -46,20 +86,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
-  Content,
   Project,
+  Content,
   getContentByProjectId,
   getTeamMemberById 
 } from "@/lib/utils/dummy-data";
-import { format } from "date-fns";
-
-interface ProjectContentListProps {
-  project: Project;
-}
+import { formatRelativeTime } from "@/lib/utils";
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "published":
+    case "approved":
       return "bg-green-100 text-green-800";
     case "approved":
       return "bg-blue-100 text-blue-800";
@@ -72,20 +108,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getTypeIcon = (type: string) => {
-  switch (type) {
-    case "blog_post":
-      return <BookOpen className="h-4 w-4" />;
-    case "email":
-      return <Mail className="h-4 w-4" />;
-    case "social":
-      return <MessageSquare className="h-4 w-4" />;
-    case "page":
-      return <FileText className="h-4 w-4" />;
-    default:
-      return <FileText className="h-4 w-4" />;
-  }
-};
 
 const getTypeColor = (type: string) => {
   switch (type) {
@@ -104,253 +126,345 @@ const getTypeColor = (type: string) => {
   }
 };
 
-export const projectContentColumns: ColumnDef<Content>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "title",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Content
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => {
-      const content = row.original;
-      
-      return (
-        <div className="flex items-center space-x-3">
-          <div className="flex-shrink-0">
-            {getTypeIcon(content.type)}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <div className="font-medium truncate">{content.title}</div>
-            {content.content && (
-              <div className="text-sm text-muted-foreground line-clamp-2">
-                {content.content.slice(0, 80)}...
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      return (
-        <Badge variant="outline" className={getStatusColor(status)}>
-          {status}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "type",
-    header: "Type",
-    cell: ({ row }) => {
-      const type = row.getValue("type") as string;
-      return (
-        <Badge variant="outline" className={getTypeColor(type)}>
-          {type.replace("_", " ")}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "wordCount",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Word Count
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => {
-      const wordCount = row.getValue("wordCount") as number;
-      return (
-        <div className="text-sm">
-          {wordCount ? `${wordCount} words` : "—"}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "assignedTo",
-    header: "Assigned To",
-    cell: ({ row }) => {
-      const assignedToId = row.getValue("assignedTo") as string;
-      const assignedTo = assignedToId ? getTeamMemberById(assignedToId) : null;
-      
-      if (!assignedTo) return <div className="text-muted-foreground">Unassigned</div>;
-      
-      return (
-        <div className="flex items-center space-x-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={assignedTo.avatarUrl} />
-            <AvatarFallback className="text-xs">
-              {assignedTo.name.split(" ").map(n => n[0]).join("")}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm">{assignedTo.name}</span>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "updatedAt",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Updated
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => {
-      const updatedAt = row.getValue("updatedAt") as string;
-      
-      if (!updatedAt) return <div className="text-muted-foreground">No date</div>;
-      
-      const date = new Date(updatedAt);
-      
-      return (
-        <div className="flex items-center space-x-1">
-          <span className="text-sm">{format(date, "MMM d, yyyy")}</span>
-        </div>
-      );
-    },
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const content = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>
-              <Eye className="mr-2 h-4 w-4" />
-              View Content
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Content
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Copy className="mr-2 h-4 w-4" />
-              Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {content.status === "draft" && (
-              <DropdownMenuItem>
-                Submit for Review
-              </DropdownMenuItem>
-            )}
-            {content.status === "pending" && (
-              <>
-                <DropdownMenuItem>
-                  Approve Content
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  Request Changes
-                </DropdownMenuItem>
-              </>
-            )}
-            {content.status === "approved" && (
-              <DropdownMenuItem>
-                Publish Content
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              AI Optimize
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              Translate
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Content
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
+// Status filter options
+const statusOptions = [
+  { value: "all", label: "All Status" },
+  { value: "draft", label: "Draft" },
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
 ];
 
-export function ProjectContentList({ project }: ProjectContentListProps) {
+// Type filter options
+const typeOptions = [
+  { value: "all", label: "All Types" },
+  { value: "blog_post", label: "Blog Post" },
+  { value: "page", label: "Page" },
+  { value: "email", label: "Email" },
+  { value: "social", label: "Social Media" },
+  { value: "other", label: "Other" },
+];
+
+// Sort options
+const sortOptions = [
+  { value: "updatedAt", label: "Last Updated" },
+  { value: "createdAt", label: "Created Date" },
+  { value: "title", label: "Title A-Z" },
+  { value: "status", label: "Status" },
+];
+
+// Drag handle component following Shadcn pattern
+function DragHandle({ id }: { id: string }) {
+  const { attributes, listeners } = useSortable({
+    id,
+  });
+
+  return (
+    <div
+      {...attributes}
+      {...listeners}
+      className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1"
+    >
+      <GripVertical className="h-3 w-3" />
+      <span className="sr-only">Drag to reorder</span>
+    </div>
+  );
+}
+
+// Draggable row component following Shadcn pattern
+function DraggableRow({ row }: { row: Row<Content> }) {
+  const { transform, transition, setNodeRef, isDragging } = useSortable({
+    id: row.original.id,
+  });
+
+  return (
+    <TableRow
+      data-state={row.getIsSelected() && "selected"}
+      data-dragging={isDragging}
+      ref={setNodeRef}
+      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 hover:bg-muted/50"
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: transition,
+      }}
+    >
+      {row.getVisibleCells().map((cell) => (
+        <TableCell key={cell.id}>
+          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
+interface ProjectContentListProps {
+  project: Project;
+  content?: Content[];
+}
+
+export function ProjectContentList({ project, content: externalContent }: ProjectContentListProps) {
+  const originalContent = React.useMemo(() => getContentByProjectId(project.id), [project.id]);
+  const [data, setData] = React.useState(() => externalContent || originalContent);
+
+  // Update data when external content changes
+  React.useEffect(() => {
+    if (externalContent) {
+      setData(externalContent);
+    } else {
+      setData(originalContent);
+    }
+  }, [externalContent, originalContent]);
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [statusFilter, setStatusFilter] = React.useState<string>("all");
-  const [typeFilter, setTypeFilter] = React.useState<string>("all");
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [typeFilter, setTypeFilter] = React.useState("all");
+  const [assigneeFilter, setAssigneeFilter] = React.useState("all");
+  const [sortBy, setSortBy] = React.useState("updatedAt");
+  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
-  const projectContent = getContentByProjectId(project.id);
+  // Drag and drop setup
+  const sortableId = React.useId();
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  // Filter content based on status and type
-  const filteredContent = React.useMemo(() => {
-    let filtered = projectContent;
+  const dataIds = React.useMemo<UniqueIdentifier[]>(
+    () => data?.map(({ id }) => id) || [],
+    [data]
+  );
+
+  // Handle drag end
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (active && over && active.id !== over.id) {
+      setData((data) => {
+        const oldIndex = dataIds.indexOf(active.id);
+        const newIndex = dataIds.indexOf(over.id);
+        return arrayMove(data, oldIndex, newIndex);
+      });
+    }
+  }
+
+  // Get unique assignees for filter
+  const uniqueAssignees = React.useMemo(() => {
+    const assignees = data
+      .map(content => content.assignedTo)
+      .filter((assignee): assignee is string => assignee !== undefined)
+      .filter((assignee, index, array) => array.indexOf(assignee) === index);
     
+    return assignees.map(assigneeId => {
+      const member = getTeamMemberById(assigneeId);
+      return member ? { value: assigneeId, label: member.name } : null;
+    }).filter((item): item is { value: string; label: string } => item !== null);
+  }, [data]);
+
+  // Filter and sort content
+  const filteredAndSortedContent = React.useMemo(() => {
+    let filtered = data;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(content =>
+        content.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (content.content?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      );
+    }
+
+    // Apply status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(content => content.status === statusFilter);
     }
-    
+
+    // Apply type filter
     if (typeFilter !== "all") {
       filtered = filtered.filter(content => content.type === typeFilter);
     }
-    
+
+    // Apply assignee filter
+    if (assigneeFilter !== "all") {
+      filtered = filtered.filter(content => content.assignedTo === assigneeFilter);
+    }
+
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "createdAt":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "updatedAt":
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        case "wordCount":
+          return (b.wordCount || 0) - (a.wordCount || 0);
+        case "status":
+          const statusOrder = { approved: 4, pending: 2, draft: 1 };
+          return (statusOrder[b.status as keyof typeof statusOrder] || 0) - 
+                 (statusOrder[a.status as keyof typeof statusOrder] || 0);
+        default:
+          return 0;
+      }
+    });
+
     return filtered;
-  }, [projectContent, statusFilter, typeFilter]);
+  }, [data, searchTerm, statusFilter, typeFilter, assigneeFilter, sortBy]);
+
+  const contentColumns: ColumnDef<Content>[] = [
+    {
+      id: "drag",
+      header: () => null,
+      cell: ({ row }) => <DragHandle id={row.original.id} />,
+      enableSorting: false,
+      enableHiding: false,
+      size: 24,
+    },
+    {
+      accessorKey: "title",
+      header: "Content",
+      cell: ({ row }) => {
+        const content = row.original;
+        
+        return (
+          <div className="flex items-center space-x-3 p-2">
+            <div className="flex flex-col min-w-0">
+              <div className="font-medium hover:text-primary transition-colors cursor-pointer">
+                {content.title}
+              </div>
+              <div className="text-sm text-muted-foreground line-clamp-1">
+                {content.content ? `${content.content.slice(0, 60)}...` : "No content"}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        return (
+          <Badge className={getStatusColor(status)}>
+            {status}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ row }) => {
+        const type = row.getValue("type") as string;
+        return (
+          <Badge className={getTypeColor(type)}>
+            {type.replace("_", " ")}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "assignedTo",
+      header: "Assigned To",
+      cell: ({ row }) => {
+        const assignedToId = row.getValue("assignedTo") as string | undefined;
+        
+        if (!assignedToId) {
+          return <div className="text-muted-foreground">Unassigned</div>;
+        }
+        
+        const assignedTo = getTeamMemberById(assignedToId);
+        if (!assignedTo) {
+          return <div className="text-muted-foreground">Unknown</div>;
+        }
+        
+        return (
+          <div className="flex items-center space-x-2">
+            <Avatar className="h-6 w-6 border border-background">
+              <AvatarImage src={assignedTo.avatarUrl} />
+              <AvatarFallback className="text-xs">
+                {assignedTo.name.split(" ").map(n => n[0]).join("")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <div className="text-sm font-medium">{assignedTo.name}</div>
+              <div className="text-xs text-muted-foreground">{assignedTo.role}</div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "updatedAt",
+      header: "Last updated",
+      cell: ({ row }) => {
+        const updatedAt = row.getValue("updatedAt") as string;
+        
+        return (
+          <div className="flex flex-col">
+            <div>{formatRelativeTime(updatedAt)}</div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const content = row.original;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => console.log('View content:', content.title)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View content
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => console.log('Edit content:', content.title)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit content
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => console.log('Duplicate content:', content.title)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => console.log('AI optimize:', content.title)}>
+                <Wand2 className="mr-2 h-4 w-4" />
+                AI optimize
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => console.log('Translate:', content.title)}>
+                <Languages className="mr-2 h-4 w-4" />
+                Translate
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-red-500" onClick={() => console.log('Delete content:', content.title)}>
+                <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                Delete content
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
 
   const table = useReactTable({
-    data: filteredContent,
-    columns: projectContentColumns,
+    data: filteredAndSortedContent,
+    columns: contentColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -359,6 +473,7 @@ export function ProjectContentList({ project }: ProjectContentListProps) {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    getRowId: (row) => row.id,
     state: {
       sorting,
       columnFilters,
@@ -368,159 +483,369 @@ export function ProjectContentList({ project }: ProjectContentListProps) {
   });
 
   // Content stats
-  const totalContent = projectContent.length;
-  const draftCount = projectContent.filter(c => c.status === "draft").length;
-  const pendingCount = projectContent.filter(c => c.status === "pending").length;
-  const publishedCount = projectContent.filter(c => c.status === "published").length;
+  const totalContent = data.length;
+  const draftCount = data.filter(c => c.status === "draft").length;
+  const pendingCount = data.filter(c => c.status === "pending").length;
+  const approvedCount = data.filter(c => c.status === "approved").length;
 
   return (
-    <div className="space-y-0">
-      {/* Content Table */}
-      <div className="w-full flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <Input
-            placeholder="Search content..."
-            value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("title")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="blog_post">Blog Post</SelectItem>
-              <SelectItem value="page">Page</SelectItem>
-              <SelectItem value="email">Email</SelectItem>
-              <SelectItem value="social">Social Media</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Columns <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button variant="default">
-            <Plus className="h-4 w-4" />
+    <div className="w-full flex flex-col gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-medium tracking-tight">Content</h2>
+          <p className="text-muted-foreground text-sm">
+            Manage content and publications for {project.title}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => console.log('Create content clicked')}>
+            <Plus className="h-4 w-4 mr-2" />
             Create Content
           </Button>
         </div>
-        
-        <div className="overflow-hidden rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={projectContentColumns.length}
-                    className="h-24 text-center"
-                  >
-                    No content found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Content</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalContent}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Drafts</CardTitle>
+            <Edit className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{draftCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+            <Check className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{approvedCount}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search content..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
-        
-        <div className="flex items-center justify-between space-x-2 py-4">
-          <div className="text-muted-foreground flex-1 text-sm">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
-          </div>
-          <div className="space-x-2">
+
+        {/* Filters */}
+        <div className="flex items-center gap-4">
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[200px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Type Filter */}
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <FileText className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {typeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Assignee Filter */}
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <User className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="All Assignees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Assignees</SelectItem>
+              {uniqueAssignees.map((assignee) => (
+                <SelectItem key={assignee.value} value={assignee.value}>
+                  {assignee.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Sort */}
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[200px]">
+              <SortAsc className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+
+          {/* View Mode Toggle */}
+          <div className="flex border rounded-md">
             <Button
-              variant="outline"
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => setViewMode('grid')}
+              className="rounded-r-none"
             >
-              Previous
+              <Grid className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => setViewMode('list')}
+              className="rounded-l-none"
             >
-              Next
+              <List className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+      </div>
+      
+      {/* Conditional rendering based on view mode */}
+      {viewMode === 'list' ? (
+        <div className="overflow-hidden rounded-lg border">
+          <DndContext
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEnd}
+            sensors={sensors}
+            id={sortableId}
+          >
+            <Table>
+              <TableHeader className="bg-muted sticky top-0 z-10">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead key={header.id} colSpan={header.colSpan}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  <SortableContext
+                    items={dataIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {table.getRowModel().rows.map((row) => (
+                      <DraggableRow key={row.id} row={row} />
+                    ))}
+                  </SortableContext>
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={contentColumns.length}
+                      className="h-24 text-center"
+                    >
+                      No content found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </DndContext>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAndSortedContent.length > 0 ? (
+            filteredAndSortedContent.map((content) => {
+              const assignedTo = content.assignedTo ? getTeamMemberById(content.assignedTo) : null;
+              return (
+                <Card key={content.id} className="group justify-between hover:shadow-md transition-all duration-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer line-clamp-1">
+                              {content.title}
+                            </CardTitle>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => console.log('View content:', content.title)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View content
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => console.log('Edit content:', content.title)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit content
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => console.log('Duplicate content:', content.title)}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => console.log('AI optimize:', content.title)}>
+                                  <Wand2 className="mr-2 h-4 w-4" />
+                                  AI optimize
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => console.log('Translate:', content.title)}>
+                                  <Languages className="mr-2 h-4 w-4" />
+                                  Translate
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-500" onClick={() => console.log('Delete content:', content.title)}>
+                                  <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                                  Delete content
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Badge className={getStatusColor(content.status)}>
+                            {content.status}
+                          </Badge>
+                          <Badge className={getTypeColor(content.type)}>
+                            {content.type.replace("_", " ")}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                          {content.content ? `${content.content.slice(0, 100)}...` : "No content"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div className="space-y-2 border-t pt-3">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                                      {assignedTo ? (
+                                        <div className="flex items-center space-x-2">
+                                          <Avatar className="h-6 w-6 border border-background">
+                                            <AvatarImage src={assignedTo.avatarUrl} />
+                                            <AvatarFallback className="text-xs">
+                                              {assignedTo.name.split(" ").map(n => n[0]).join("")}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="text-sm text-muted-foreground">
+                                            {assignedTo.name}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-sm text-muted-foreground">Unassigned</div>
+                                      )}
+                          </div>
+            <div className="flex items-center space-x-1">
+              <Calendar className="h-3 w-3" />
+                <span>{formatRelativeTime(content.updatedAt)}</span>
+                </div>
+              </div>
+            </div>
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          className="flex-1" 
+                          size="sm"
+                          onClick={() => console.log('View content:', content.title)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => console.log('Edit content:', content.title)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="col-span-full flex items-center justify-center h-32 text-muted-foreground">
+              No content found.
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="text-muted-foreground flex-1 text-sm">
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {table.getFilteredRowModel().rows.length} content item(s) selected.
+          Showing {table.getRowModel().rows.length} of {filteredAndSortedContent.length} content items.
+        </div>
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
         </div>
       </div>
     </div>

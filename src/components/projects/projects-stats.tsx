@@ -40,7 +40,6 @@ export function ProjectsStats({ projects = defaultProjects }: ProjectsStatsProps
       description: "All projects in workspace",
       icon: FolderOpen,
       trend: null,
-      color: "text-blue-600"
     },
     {
       title: "Active Projects",
@@ -48,7 +47,6 @@ export function ProjectsStats({ projects = defaultProjects }: ProjectsStatsProps
       description: "Currently in progress",
       icon: Clock,
       trend: null,
-      color: "text-green-600"
     },
     {
       title: "Total Tasks",
@@ -56,7 +54,6 @@ export function ProjectsStats({ projects = defaultProjects }: ProjectsStatsProps
       description: "Across all projects",
       icon: TrendingUp,
       trend: null,
-      color: "text-purple-600"
     },
     {
       title: "Team Members",
@@ -64,7 +61,6 @@ export function ProjectsStats({ projects = defaultProjects }: ProjectsStatsProps
       description: "Currently assigned",
       icon: Users,
       trend: null,
-      color: "text-orange-600"
     },
   ];
 
@@ -75,10 +71,10 @@ export function ProjectsStats({ projects = defaultProjects }: ProjectsStatsProps
         return (
           <Card key={stat.title} className="relative overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium">
                 {stat.title}
               </CardTitle>
-              <Icon className={`h-4 w-4 ${stat.color}`} />
+              <Icon className="h-4 w-4" />
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">

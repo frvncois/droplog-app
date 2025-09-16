@@ -23,17 +23,17 @@ import { Badge } from '@/components/ui/badge'
 import { projects, team } from '@/lib/utils/dummy-data'
 import { X, Plus } from 'lucide-react'
 
-interface CreateDocumentModalProps {
+interface DocumentCreateModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onDocumentCreated: (document: any) => void
 }
 
-export function CreateDocumentModal({
+export function DocumentCreateModal({
   open,
   onOpenChange,
   onDocumentCreated
-}: CreateDocumentModalProps) {
+}: DocumentCreateModalProps) {
   const [loading, setLoading] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [formData, setFormData] = useState({

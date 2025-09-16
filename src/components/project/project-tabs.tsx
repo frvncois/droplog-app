@@ -78,7 +78,7 @@ export function ProjectTabs({ project }: ProjectTabsProps) {
       </TabsContent>
 
       <TabsContent value="documentation">
-        <ProjectDocumentation projectId={project.id} />
+        <ProjectDocumentation project={project} />
       </TabsContent>
 
       <TabsContent value="settings">
