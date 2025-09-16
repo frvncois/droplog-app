@@ -1,59 +1,52 @@
-// components/projects/project-timeline.tsx
+// components/project/project-timeline.tsx
 
 "use client";
 
 import * as React from "react";
 import {
   Calendar,
-  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Columns2,
+  Grid2X2,
   Plus,
-  Search,
-  Filter,
-  SortAsc,
-  MoreVertical,
-  MapPin,
   Users,
   Package,
   Target,
   CheckCircle,
   AlertTriangle,
-  FileText,
-  Video,
-  Coffee,
-  Zap,
-  Flag,
   Eye,
-  Edit,
-  Copy,
-  Trash2
+  Zap,
+  CalendarDays,
+  CalendarRange
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { 
   Project,
-  getTeamMemberById 
+  Task
 } from "@/lib/utils/dummy-data";
-import { format, isToday, isTomorrow, isYesterday, isPast, isFuture } from "date-fns";
-import { formatRelativeTime } from "@/lib/utils";
+import { 
+  format, 
+  startOfWeek, 
+  endOfWeek, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  isSameDay, 
+  isSameMonth, 
+  addWeeks, 
+  addMonths, 
+  subWeeks, 
+  subMonths,
+  parseISO,
+  isToday
+} from "date-fns";
+import { cn } from "@/lib/utils";
+
+import { EventViewModal } from "@/components/modals/event-view-modal";
+import { EventCreateModal } from "@/components/modals/event-create-modal";
 
 // Timeline event interface
 interface TimelineEvent {
@@ -61,7 +54,7 @@ interface TimelineEvent {
   projectId: string;
   title: string;
   description?: string;
-  type: 'meeting' | 'delivery' | 'milestone' | 'deadline' | 'review' | 'launch' | 'event';
+  type: 'meeting' | 'delivery' | 'milestone' | 'deadline' | 'review' | 'launch' | 'event' | 'task';
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'overdue';
   startDate: string;
   endDate?: string;
@@ -77,17 +70,25 @@ interface TimelineEvent {
   updatedAt: string;
 }
 
-// Mock timeline data
-const getProjectTimeline = (projectId: string): TimelineEvent[] => [
+// Props interface
+interface ProjectTimelineProps {
+  project: Project;
+  tasks?: Task[];
+  events?: TimelineEvent[];
+  currentUserId?: string; // Add currentUserId prop
+}
+
+// Mock timeline events data
+const mockEvents: TimelineEvent[] = [
   {
     id: "tl1",
-    projectId: projectId,
+    projectId: "p1",
     title: "Project Kickoff Meeting",
     description: "Initial project planning and team introduction session",
     type: "meeting",
     status: "completed",
-    startDate: "2025-09-01T10:00:00Z",
-    endDate: "2025-09-01T11:30:00Z",
+    startDate: "2025-09-15T10:00:00Z",
+    endDate: "2025-09-15T11:30:00Z",
     location: "Conference Room A",
     attendees: ["u1", "u2", "u3"],
     organizer: "u1",
@@ -98,13 +99,13 @@ const getProjectTimeline = (projectId: string): TimelineEvent[] => [
   },
   {
     id: "tl2",
-    projectId: projectId,
-    title: "Design Review Checkpoint",
+    projectId: "p1",
+    title: "Design Review",
     description: "Review initial design concepts and wireframes",
     type: "review",
     status: "completed",
-    startDate: "2025-09-08T14:00:00Z",
-    endDate: "2025-09-08T16:00:00Z",
+    startDate: "2025-09-18T14:00:00Z",
+    endDate: "2025-09-18T16:00:00Z",
     isVirtual: true,
     attendees: ["u1", "u3"],
     organizer: "u3",
@@ -115,28 +116,13 @@ const getProjectTimeline = (projectId: string): TimelineEvent[] => [
   },
   {
     id: "tl3",
-    projectId: projectId,
-    title: "Development Sprint 1 Delivery",
-    description: "First iteration of core functionality",
-    type: "delivery",
-    status: "completed",
-    startDate: "2025-09-15T17:00:00Z",
-    organizer: "u2",
-    priority: "high",
-    tags: ["development", "sprint"],
-    attachments: ["build-v1.0.zip", "release-notes.md"],
-    createdAt: "2025-09-01T09:00:00Z",
-    updatedAt: "2025-09-15T17:30:00Z"
-  },
-  {
-    id: "tl4",
-    projectId: projectId,
+    projectId: "p1",
     title: "Client Presentation",
     description: "Demo current progress to stakeholders",
     type: "meeting",
     status: "scheduled",
-    startDate: "2025-09-18T15:00:00Z",
-    endDate: "2025-09-18T16:00:00Z",
+    startDate: "2025-09-20T15:00:00Z",
+    endDate: "2025-09-20T16:00:00Z",
     location: "Client Office",
     attendees: ["u1", "u2"],
     organizer: "u1",
@@ -144,682 +130,504 @@ const getProjectTimeline = (projectId: string): TimelineEvent[] => [
     tags: ["client", "demo"],
     createdAt: "2025-09-10T12:00:00Z",
     updatedAt: "2025-09-12T08:00:00Z"
-  },
-  {
-    id: "tl5",
-    projectId: projectId,
-    title: "Beta Testing Milestone",
-    description: "Launch beta version for user testing",
-    type: "milestone",
-    status: "scheduled",
-    startDate: "2025-09-25T09:00:00Z",
-    organizer: "u2",
-    priority: "high",
-    tags: ["beta", "testing"],
-    createdAt: "2025-09-01T09:00:00Z",
-    updatedAt: "2025-09-12T10:00:00Z"
-  },
-  {
-    id: "tl6",
-    projectId: projectId,
-    title: "Final Deadline",
-    description: "Project completion and final delivery",
-    type: "deadline",
-    status: "scheduled",
-    startDate: "2025-10-15T23:59:59Z",
-    organizer: "u1",
-    priority: "critical",
-    tags: ["deadline", "completion"],
-    createdAt: "2025-09-01T09:00:00Z",
-    updatedAt: "2025-09-01T09:00:00Z"
   }
 ];
 
+// Event type icon mapping
 const getEventTypeIcon = (type: string) => {
   const icons: Record<string, React.ComponentType<{ className?: string }>> = {
     meeting: Users,
     delivery: Package,
     milestone: Target,
-    deadline: Clock,
-    review: FileText,
+    deadline: AlertTriangle,
+    review: Eye,
     launch: Zap,
-    event: Calendar
+    event: Calendar,
+    task: CheckCircle
   };
   return icons[type] || Calendar;
 };
 
-const getEventTypeColor = (type: string) => {
-  const colors: Record<string, string> = {
-    meeting: "bg-blue-100 text-blue-800 border-blue-200",
-    delivery: "bg-green-100 text-green-800 border-green-200",
-    milestone: "bg-purple-100 text-purple-800 border-purple-200",
-    deadline: "bg-red-100 text-red-800 border-red-200",
-    review: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    launch: "bg-indigo-100 text-indigo-800 border-indigo-200",
-    event: "bg-gray-100 text-gray-800 border-gray-200"
-  };
-  return colors[type] || "bg-gray-100 text-gray-800 border-gray-200";
-};
-
+// Status colors
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    scheduled: "bg-blue-100 text-blue-800",
-    in_progress: "bg-yellow-100 text-yellow-800",
-    completed: "bg-green-100 text-green-800",
-    cancelled: "bg-gray-100 text-gray-800",
-    overdue: "bg-red-100 text-red-800"
+    completed: "bg-green-100 text-green-800 border-green-200",
+    in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+    scheduled: "bg-gray-100 text-gray-800 border-gray-200",
+    cancelled: "bg-red-100 text-red-800 border-red-200",
+    overdue: "bg-red-100 text-red-800 border-red-200"
   };
-  return colors[status] || "bg-gray-100 text-gray-800";
+  return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
 };
 
+// Priority colors
 const getPriorityColor = (priority: string) => {
   const colors: Record<string, string> = {
-    low: "text-green-600",
-    medium: "text-yellow-600",
-    high: "text-orange-600",
-    critical: "text-red-600"
+    critical: "border-l-red-500",
+    high: "border-l-orange-500",
+    medium: "border-l-yellow-500",
+    low: "border-l-green-500"
   };
-  return colors[priority] || "text-gray-600";
+  return colors[priority] || "border-l-gray-300";
 };
 
-// Type filter options
-const typeOptions = [
-  { value: "all", label: "All Types" },
-  { value: "meeting", label: "Meetings" },
-  { value: "delivery", label: "Deliveries" },
-  { value: "milestone", label: "Milestones" },
-  { value: "deadline", label: "Deadlines" },
-  { value: "review", label: "Reviews" },
-  { value: "launch", label: "Launches" },
-  { value: "event", label: "Events" },
-];
+// Convert tasks to timeline events
+const tasksToTimelineEvents = (tasks: Task[]): TimelineEvent[] => {
+  return tasks
+    .filter(task => task.dueDate)
+    .map(task => ({
+      id: `task-${task.id}`,
+      projectId: task.projectId,
+      title: task.title,
+      description: task.description,
+      type: 'task' as const,
+      status: task.status === 'completed' ? 'completed' as const : 
+              task.status === 'in_progress' ? 'in_progress' as const : 'scheduled' as const,
+      startDate: `${task.dueDate}T23:59:59Z`,
+      priority: task.priority as 'low' | 'medium' | 'high' | 'critical',
+      organizer: task.assignedTo,
+      tags: ['task'],
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt
+    }));
+};
 
-// Status filter options
-const statusOptions = [
-  { value: "all", label: "All Status" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "overdue", label: "Overdue" },
-];
+export function ProjectTimeline({ 
+  project, 
+  tasks = [], 
+  events: externalEvents,
+  currentUserId = "u1" // Default to u1 if not provided
+}: ProjectTimelineProps) {
+  // State
+  const [currentDate, setCurrentDate] = React.useState(new Date());
+  const [viewMode, setViewMode] = React.useState<'week' | 'month'>('week');
+  const [events, setEvents] = React.useState<TimelineEvent[]>([]);
+  
+  // Modal states
+  const [selectedEvent, setSelectedEvent] = React.useState<TimelineEvent | null>(null);
+  const [showViewModal, setShowViewModal] = React.useState(false);
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  const [editingEvent, setEditingEvent] = React.useState<TimelineEvent | null>(null);
 
-// Sort options
-const sortOptions = [
-  { value: "startDate", label: "Date" },
-  { value: "priority", label: "Priority" },
-  { value: "type", label: "Type" },
-  { value: "title", label: "Title A-Z" },
-];
-
-interface ProjectTimelineProps {
-  project: Project;
-  events?: TimelineEvent[];
-  showCompact?: boolean;
-  maxEvents?: number;
-}
-
-export function ProjectTimeline({ project, events: externalEvents, showCompact = false, maxEvents }: ProjectTimelineProps) {
-  const originalEvents = React.useMemo(() => getProjectTimeline(project.id), [project.id]);
-  const [data, setData] = React.useState(() => externalEvents || originalEvents);
-
-  // Update data when external events change
+  // Initialize events
   React.useEffect(() => {
-    if (externalEvents) {
-      setData(externalEvents);
-    } else {
-      setData(originalEvents);
-    }
-  }, [externalEvents, originalEvents]);
-
-  // Filter states
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [typeFilter, setTypeFilter] = React.useState("all");
-  const [statusFilter, setStatusFilter] = React.useState("all");
-  const [sortBy, setSortBy] = React.useState("startDate");
-  const [viewMode, setViewMode] = React.useState<'timeline' | 'list'>('timeline');
-
-  // Timeline statistics
-  const timelineStats = React.useMemo(() => {
-    const totalEvents = data.length;
-    const completedEvents = data.filter(e => e.status === "completed");
-    const upcomingEvents = data.filter(e => e.status === "scheduled" && isFuture(new Date(e.startDate)));
-    const overdueEvents = data.filter(e => e.status === "overdue" || (e.status === "scheduled" && isPast(new Date(e.startDate))));
-    const todayEvents = data.filter(e => isToday(new Date(e.startDate)));
+    const taskEvents = tasksToTimelineEvents(tasks);
+    const projectEvents = externalEvents || mockEvents.filter(e => e.projectId === project.id);
+    const newEvents = [...projectEvents, ...taskEvents];
     
-    const completionRate = totalEvents > 0 ? Math.round((completedEvents.length / totalEvents) * 100) : 0;
-    
-    return {
-      totalEvents,
-      completedEvents: completedEvents.length,
-      upcomingEvents: upcomingEvents.length,
-      overdueEvents: overdueEvents.length,
-      todayEvents: todayEvents.length,
-      completionRate
-    };
-  }, [data]);
+    // Only update if events actually changed
+    setEvents(prevEvents => {
+      const eventsChanged = prevEvents.length !== newEvents.length || 
+        !prevEvents.every(event => newEvents.some(newEvent => newEvent.id === event.id));
+      
+      return eventsChanged ? newEvents : prevEvents;
+    });
+  }, [project.id]); // Remove tasks and externalEvents from dependencies
 
-  // Filter and sort events
-  const filteredAndSortedEvents = React.useMemo(() => {
-    let filtered = data;
-
-    // For compact mode, only show upcoming and today's events
-    if (showCompact) {
-      const today = new Date();
-      filtered = filtered.filter(event => {
-        const eventDate = new Date(event.startDate);
-        return eventDate >= today || isToday(eventDate);
+  // Separate effect for tasks changes
+  React.useEffect(() => {
+    if (tasks.length > 0) {
+      const taskEvents = tasksToTimelineEvents(tasks);
+      setEvents(prevEvents => {
+        // Remove old task events and add new ones
+        const nonTaskEvents = prevEvents.filter(event => !event.id.startsWith('task-'));
+        return [...nonTaskEvents, ...taskEvents];
       });
     }
+  }, [tasks.length]); // Only depend on tasks length, not the array itself
 
-    // Apply search filter (only in full mode)
-    if (!showCompact && searchTerm) {
-      filtered = filtered.filter(event =>
-        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-        (event.location?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-      );
+  // Separate effect for external events
+  React.useEffect(() => {
+    if (externalEvents) {
+      setEvents(prevEvents => {
+        // Remove old external events and add new ones
+        const taskEvents = prevEvents.filter(event => event.id.startsWith('task-'));
+        return [...externalEvents, ...taskEvents];
+      });
     }
+  }, [externalEvents?.length]); // Only depend on external events length
 
-    // Apply type filter (only in full mode)
-    if (!showCompact && typeFilter !== "all") {
-      filtered = filtered.filter(event => event.type === typeFilter);
+  // Calendar calculations
+  const calendarStart = React.useMemo(() => {
+    if (viewMode === 'week') {
+      return startOfWeek(currentDate, { weekStartsOn: 0 });
+    } else {
+      return startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 });
     }
+  }, [currentDate, viewMode]);
 
-    // Apply status filter (only in full mode)
-    if (!showCompact && statusFilter !== "all") {
-      filtered = filtered.filter(event => event.status === statusFilter);
+  const calendarEnd = React.useMemo(() => {
+    if (viewMode === 'week') {
+      return endOfWeek(currentDate, { weekStartsOn: 0 });
+    } else {
+      return endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 });
     }
+  }, [currentDate, viewMode]);
 
-    // Apply sorting
-    filtered = [...filtered].sort((a, b) => {
-      const sortKey = showCompact ? "startDate" : sortBy;
-      switch (sortKey) {
-        case "startDate":
-          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-        case "priority":
-          const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-          return (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) - 
-                 (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
-        case "type":
-          return a.type.localeCompare(b.type);
-        case "title":
-          return a.title.localeCompare(b.title);
-        default:
-          return 0;
-      }
-    });
+  const calendarDays = React.useMemo(() => {
+    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  }, [calendarStart, calendarEnd]);
 
-    // Limit events for compact mode
-    if (showCompact && maxEvents) {
-      filtered = filtered.slice(0, maxEvents);
-    }
-
-    return filtered;
-  }, [data, searchTerm, typeFilter, statusFilter, sortBy, showCompact, maxEvents]);
-
-  const handleEventAction = (action: string, event: TimelineEvent) => {
-    console.log(`${action} event:`, event.id);
+  // Event handlers
+  const getEventsForDay = (day: Date) => {
+    return events.filter(event => isSameDay(parseISO(event.startDate), day));
   };
 
-  const formatEventDate = (event: TimelineEvent) => {
-    const startDate = new Date(event.startDate);
-    const endDate = event.endDate ? new Date(event.endDate) : null;
-    
-    if (isToday(startDate)) {
-      return `Today, ${format(startDate, "h:mm a")}${endDate ? ` - ${format(endDate, "h:mm a")}` : ""}`;
-    } else if (isTomorrow(startDate)) {
-      return `Tomorrow, ${format(startDate, "h:mm a")}${endDate ? ` - ${format(endDate, "h:mm a")}` : ""}`;
-    } else if (isYesterday(startDate)) {
-      return `Yesterday, ${format(startDate, "h:mm a")}${endDate ? ` - ${format(endDate, "h:mm a")}` : ""}`;
+  const handlePrevious = () => {
+    if (viewMode === 'week') {
+      setCurrentDate(prev => subWeeks(prev, 1));
     } else {
-      return `${format(startDate, "MMM d, yyyy h:mm a")}${endDate ? ` - ${format(endDate, "h:mm a")}` : ""}`;
+      setCurrentDate(prev => subMonths(prev, 1));
     }
+  };
+
+  const handleNext = () => {
+    if (viewMode === 'week') {
+      setCurrentDate(prev => addWeeks(prev, 1));
+    } else {
+      setCurrentDate(prev => addMonths(prev, 1));
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const handleViewModeChange = (value: string) => {
+    if (value === 'week' || value === 'month') {
+      setViewMode(value);
+    }
+  };
+
+  const handleEventClick = (event: TimelineEvent) => {
+    setSelectedEvent(event);
+    setShowViewModal(true);
+  };
+
+  const handleAddEvent = () => {
+    setEditingEvent(null);
+    setShowCreateModal(true);
+  };
+
+  const handleEditEvent = (event: TimelineEvent) => {
+    setShowViewModal(false);
+    setEditingEvent(event);
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId));
+    setShowViewModal(false);
+  };
+
+  const handleDuplicateEvent = (event: TimelineEvent) => {
+    const duplicatedEvent = {
+      ...event,
+      id: `tl-${Date.now()}`,
+      title: `${event.title} (Copy)`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setEvents(prev => [...prev, duplicatedEvent]);
+    setShowViewModal(false);
+  };
+
+  const handleCreateEvent = (eventData: Omit<TimelineEvent, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newEvent: TimelineEvent = {
+      ...eventData,
+      id: `tl-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setEvents(prev => [...prev, newEvent]);
+  };
+
+  const handleUpdateEvent = (updatedEvent: TimelineEvent) => {
+    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+  };
+
+  // Calendar title
+  const getCalendarTitle = () => {
+    if (viewMode === 'week') {
+      const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+      const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+      return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+    } else {
+      return format(currentDate, 'MMMM yyyy');
+    }
+  };
+
+  // Render calendar views
+  const renderWeekView = () => {
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    return (
+      <div className="grid grid-cols-7 gap-px bg-muted border rounded-xl overflow-hidden">
+        {weekDays.map((day) => (
+          <div key={day} className="bg-muted p-2 text-center text-sm font-medium text-gray-700">
+            {day}
+          </div>
+        ))}
+        
+        {calendarDays.map((day) => {
+          const dayEvents = getEventsForDay(day);
+          const isCurrentMonth = isSameMonth(day, currentDate);
+          const isDayToday = isToday(day);
+          
+          return (
+            <div
+              key={day.toISOString()}
+              className={cn(
+                "bg-white p-2 min-h-[200px] transition-colors hover:bg-gray-50",
+                !isCurrentMonth && "bg-gray-50 text-gray-400"
+              )}
+            >
+              <div className={cn(
+                "text-sm font-medium mb-2",
+                isDayToday && "bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
+              )}>
+                {format(day, 'd')}
+              </div>
+              
+              <div className="space-y-1">
+                {dayEvents.slice(0, 3).map((event) => {
+                  const IconComponent = getEventTypeIcon(event.type);
+                  
+                  return (
+                    <div
+                      key={event.id}
+                      onClick={() => handleEventClick(event)}
+                      className={cn(
+                        "p-1 rounded text-xs border-l-2 cursor-pointer hover:shadow-sm transition-shadow",
+                        getStatusColor(event.status),
+                        getPriorityColor(event.priority)
+                      )}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <IconComponent className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate font-medium">{event.title}</span>
+                      </div>
+                      <div className="text-xs opacity-75 mt-0.5">
+                        {format(parseISO(event.startDate), 'h:mm a')}
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {dayEvents.length > 3 && (
+                  <div className="text-xs text-gray-500 p-1">
+                    +{dayEvents.length - 3} more
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderMonthView = () => {
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weeks: Date[][] = [];
+    
+    for (let i = 0; i < calendarDays.length; i += 7) {
+      weeks.push(calendarDays.slice(i, i + 7));
+    }
+    
+    return (
+      <div className="space-y-px border rounded-xl overflow-hidden bg-muted">
+        <div className="grid grid-cols-7 gap-px bg-muted">
+          {weekDays.map((day) => (
+            <div key={day} className="bg-muted p-2 text-center text-sm font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid gap-px bg-gray-200 rounded-b-lg overflow-hidden">
+          {weeks.map((week, weekIndex) => (
+            <div key={weekIndex} className="grid grid-cols-7 gap-px">
+              {week.map((day) => {
+                const dayEvents = getEventsForDay(day);
+                const isCurrentMonth = isSameMonth(day, currentDate);
+                const isDayToday = isToday(day);
+                
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className={cn(
+                      "bg-white p-2 min-h-[100px] transition-colors hover:bg-gray-50",
+                      !isCurrentMonth && "bg-gray-50 text-gray-400"
+                    )}
+                  >
+                    <div className={cn(
+                      "text-sm font-medium mb-2",
+                      isDayToday && "bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                    )}>
+                      {format(day, 'd')}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      {dayEvents.slice(0, 2).map((event) => {
+                        const IconComponent = getEventTypeIcon(event.type);
+                        
+                        return (
+                          <div
+                            key={event.id}
+                            onClick={() => handleEventClick(event)}
+                            className={cn(
+                              "p-1 rounded text-xs border-l-2 cursor-pointer hover:shadow-sm transition-shadow",
+                              getStatusColor(event.status),
+                              getPriorityColor(event.priority)
+                            )}
+                          >
+                            <div className="flex items-center space-x-1">
+                              <IconComponent className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate font-medium">{event.title}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {dayEvents.length > 2 && (
+                        <div className="text-xs text-gray-500 p-1">
+                          +{dayEvents.length - 2} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      {/* Header - Hidden in compact mode */}
-      {!showCompact && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-medium tracking-tight">Timeline</h2>
-            <p className="text-muted-foreground text-sm">
-              Project events, meetings, and milestones for {project.title}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => console.log('Add event clicked')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Event
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Stats Cards - Hidden in compact mode */}
-      {!showCompact && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{timelineStats.completionRate}%</div>
-              <p className="text-xs text-muted-foreground">
-                {timelineStats.completedEvents} of {timelineStats.totalEvents} completed
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{timelineStats.upcomingEvents}</div>
-              <p className="text-xs text-muted-foreground">
-                {timelineStats.todayEvents} today
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Events</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{timelineStats.todayEvents}</div>
-              <p className="text-xs text-muted-foreground">
-                Scheduled for today
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{timelineStats.overdueEvents}</div>
-              <p className="text-xs text-muted-foreground">
-                Need attention
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Filters and Controls - Hidden in compact mode */}
-      {!showCompact && (
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search events..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Filters */}
-          <div className="flex items-center gap-4">
-            {/* Type Filter */}
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[150px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {typeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Sort */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[150px]">
-                <SortAsc className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )} {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-medium tracking-tight">Timeline</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Project Timeline</h2>
           <p className="text-muted-foreground text-sm">
-            Project events, meetings, and milestones for {project.title}
+            Track events, milestones, and task deadlines for {project.title}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => console.log('Add event clicked')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Event
-          </Button>
-        </div>
+        <Button onClick={handleAddEvent}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Event
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{timelineStats.completionRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {timelineStats.completedEvents} of {timelineStats.totalEvents} completed
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{timelineStats.upcomingEvents}</div>
-            <p className="text-xs text-muted-foreground">
-              {timelineStats.todayEvents} today
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Events</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{timelineStats.todayEvents}</div>
-            <p className="text-xs text-muted-foreground">
-              Scheduled for today
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{timelineStats.overdueEvents}</div>
-            <p className="text-xs text-muted-foreground">
-              Need attention
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Calendar Controls */}
 
-      {/* Filters and Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search events..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-4">
-          {/* Type Filter */}
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[150px]">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {typeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Sort */}
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[150px]">
-              <SortAsc className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Timeline View */}
-      {filteredAndSortedEvents.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {data.length === 0 ? 'No events scheduled' : 'No events match your filters'}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {data.length === 0 
-                ? 'Add your first event to get started'
-                : 'Try adjusting your search or filters'
-              }
-            </p>
-            {data.length === 0 && !showCompact && (
-              <Button onClick={() => console.log('Add event clicked')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add First Event
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className={`space-y-4 ${showCompact ? 'space-y-2' : ''}`}>
-          {filteredAndSortedEvents.map((event, index) => {
-            const IconComponent = getEventTypeIcon(event.type);
-            const startDate = new Date(event.startDate);
-            const isEventPast = isPast(startDate) && event.status !== "completed";
-            const isEventToday = isToday(startDate);
-            const organizer = event.organizer ? getTeamMemberById(event.organizer) : null;
-            
-            return (
-              <div key={event.id} className="relative">
-                {/* Timeline connector - smaller in compact mode */}
-                {index < filteredAndSortedEvents.length - 1 && (
-                  <div className={`absolute left-6 ${showCompact ? 'top-12 h-6' : 'top-16 h-8'} w-0.5 bg-gray-200 z-0`} />
-                )}
-                
-                <Card className={`relative z-10 hover:shadow-md transition-all duration-200 ${showCompact ? 'py-2' : ''}`}>
-                  <CardHeader className={showCompact ? "pb-2 py-3" : "pb-3"}>
-                    <div className="flex items-start gap-4">
-                      {/* Icon - smaller in compact mode */}
-                      <div className={`${showCompact ? 'p-1.5' : 'p-2'} rounded-full border-2 ${getEventTypeColor(event.type)} flex-shrink-0`}>
-                        <IconComponent className={`${showCompact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                      </div>
-                      
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className={`font-semibold ${showCompact ? 'text-base' : 'text-lg'}`}>{event.title}</h3>
-                              <Badge className={getStatusColor(event.status)}>
-                                {event.status.replace("_", " ")}
-                              </Badge>
-                              <Flag className={`${showCompact ? 'h-3 w-3' : 'h-4 w-4'} ${getPriorityColor(event.priority)}`} />
-                            </div>
-                            
-                            {/* Description - hide in compact mode for space */}
-                            {!showCompact && event.description && (
-                              <p className="text-sm text-muted-foreground mb-3">
-                                {event.description}
-                              </p>
-                            )}
-                            
-                            <div className={`flex items-center gap-4 text-sm text-muted-foreground ${showCompact ? 'mb-1' : 'mb-2'}`}>
-                              <div className={`flex items-center gap-1 ${isEventToday ? 'font-medium text-blue-600' : isEventPast ? 'text-red-600' : ''}`}>
-                                <Clock className={`${showCompact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                                <span className={showCompact ? 'text-xs' : ''}>{formatEventDate(event)}</span>
-                              </div>
-                              
-                              {!showCompact && event.location && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  <span>{event.location}</span>
-                                </div>
-                              )}
-                              
-                              {event.isVirtual && (
-                                <Badge variant="outline" className="text-xs">
-                                  Virtual
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            {/* Organizer and Attendees - simplified in compact mode */}
-                            <div className={`flex items-center gap-4 ${showCompact ? 'text-xs' : ''}`}>
-                              {/* Organizer - show only in full mode or if no attendees */}
-                              {(!showCompact || !event.attendees?.length) && organizer && (
-                                <div className="flex items-center gap-2">
-                                  <Avatar className={`${showCompact ? 'h-5 w-5' : 'h-6 w-6'}`}>
-                                    <AvatarImage src={organizer.avatarUrl} />
-                                    <AvatarFallback className="text-xs">
-                                      {organizer.name.split(" ").map(n => n[0]).join("")}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm text-muted-foreground">
-                                    {showCompact ? organizer.name : `Organized by ${organizer.name}`}
-                                  </span>
-                                </div>
-                              )}
-                              
-                              {/* Attendees */}
-                              {event.attendees && event.attendees.length > 0 && (
-                                <div className="flex items-center gap-2">
-                                  <div className="flex -space-x-2">
-                                    {event.attendees.slice(0, showCompact ? 2 : 3).map((attendeeId) => {
-                                      const attendee = getTeamMemberById(attendeeId);
-                                      if (!attendee) return null;
-                                      
-                                      return (
-                                        <Avatar key={attendeeId} className={`${showCompact ? 'h-5 w-5' : 'h-6 w-6'} border-2 border-background`}>
-                                          <AvatarImage src={attendee.avatarUrl} />
-                                          <AvatarFallback className="text-xs">
-                                            {attendee.name.split(" ").map(n => n[0]).join("")}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                      );
-                                    })}
-                                    {event.attendees.length > (showCompact ? 2 : 3) && (
-                                      <div className={`${showCompact ? 'h-5 w-5' : 'h-6 w-6'} rounded-full border-2 border-background bg-gray-100 flex items-center justify-center`}>
-                                        <span className="text-xs text-muted-foreground">
-                                          +{event.attendees.length - (showCompact ? 2 : 3)}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  {!showCompact && (
-                                    <span className="text-sm text-muted-foreground">
-                                      {event.attendees.length} attendee{event.attendees.length === 1 ? '' : 's'}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Actions - hide in compact mode */}
-                          {!showCompact && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="h-8 w-8 p-0">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleEventAction('view', event)}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEventAction('edit', event)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit event
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEventAction('copy', event)}>
-                                  <Copy className="mr-2 h-4 w-4" />
-                                  Duplicate event
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-500" onClick={() => handleEventAction('delete', event)}>
-                                  <Trash2 className="mr-2 h-4 w-4 text-red-500" />
-                                  Delete event
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <Button variant="outline" size="sm" onClick={handlePrevious}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleToday} className="min-w-[80px]">
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleNext}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <h3 className="text-lg font-semibold">{getCalendarTitle()}</h3>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {/* View Mode Toggle */}
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === 'week' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('week')}
+                  className="rounded-r-none"
+                >
+                  <Columns2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'month' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('month')}
+                  className="rounded-l-none"
+                >
+                  <Grid2X2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        
+          {viewMode === 'week' ? renderWeekView() : renderMonthView()}
+
+      {/* Event Legend */}
+      <Card>
+        <CardHeader>
+          <div className="text-base">Event Types</div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { type: 'meeting', label: 'Meetings', icon: Users },
+              { type: 'milestone', label: 'Milestones', icon: Target },
+              { type: 'deadline', label: 'Deadlines', icon: AlertTriangle },
+              { type: 'review', label: 'Reviews', icon: Eye },
+              { type: 'delivery', label: 'Deliveries', icon: Package },
+              { type: 'launch', label: 'Launches', icon: Zap },
+              { type: 'task', label: 'Tasks', icon: CheckCircle },
+              { type: 'event', label: 'Events', icon: Calendar }
+            ].map(({ type, label, icon: Icon }) => (
+              <div key={type} className="flex items-center space-x-2">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{label}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="text-sm font-medium mb-2">Priority Levels</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { priority: 'low', label: 'Low', color: 'border-l-green-500' },
+                { priority: 'medium', label: 'Medium', color: 'border-l-yellow-500' },
+                { priority: 'high', label: 'High', color: 'border-l-orange-500' },
+                { priority: 'critical', label: 'Critical', color: 'border-l-red-500' }
+              ].map(({ priority, label, color }) => (
+                <div key={priority} className="flex items-center space-x-2">
+                  <div className={cn("w-3 h-3 border-l-4", color)}></div>
+                  <span className="text-sm">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Modals */}
+      <EventViewModal
+        open={showViewModal}
+        onOpenChange={setShowViewModal}
+        event={selectedEvent}
+        onEdit={handleEditEvent}
+        onDelete={handleDeleteEvent}
+        onDuplicate={handleDuplicateEvent}
+      />
+
+      <EventCreateModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        projectId={project.id}
+        currentUserId={currentUserId}
+        editingEvent={editingEvent}
+        onCreateEvent={handleCreateEvent}
+        onUpdateEvent={handleUpdateEvent}
+      />
     </div>
   );
 }

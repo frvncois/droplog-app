@@ -80,7 +80,7 @@ export function IntegrationCard({
       <Card className="h-full">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-6">
               <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
                 <IconComponent className="h-5 w-5" />
               </div>

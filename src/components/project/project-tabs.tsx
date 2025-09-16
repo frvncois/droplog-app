@@ -1,5 +1,15 @@
 // components/projects/project-tabs.tsx
 "use client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import { Button } from "@/components/ui/button";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectOverview } from "./project-overview";
@@ -8,12 +18,16 @@ import { ProjectAssetsList } from "./project-assets-list";
 import { ProjectContentList } from "./project-content-list";
 import { ProjectTeamList } from "./project-team-list";
 import { ProjectDocumentation } from '@/components/project/project-documentation'
+import { ProjectTimeline } from "./project-timeline";
 import { ProjectSettings } from "./project-settings";
 import { 
   FileText, 
   CheckSquare, 
-  FileImage, 
+  FileImage,
+  FolderCode,
+  Calendar,
   Users, 
+  Trash,
   Settings,
   LayoutDashboard
 } from "lucide-react";
@@ -21,15 +35,20 @@ import { Project } from "@/lib/utils/dummy-data";
 
 interface ProjectTabsProps {
   project: Project;
+  currentUserId?: string; // Add currentUserId prop
 }
 
-export function ProjectTabs({ project }: ProjectTabsProps) {
+export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps) {
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-7">
+      <TabsList className="flex w-full gap-10">
         <TabsTrigger value="overview" className="flex items-center space-x-2">
           <LayoutDashboard className="h-4 w-4" />
           <span>Overview</span>
+        </TabsTrigger>
+        <TabsTrigger value="timeline" className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4" />
+          <span>Timeline</span>
         </TabsTrigger>
         <TabsTrigger value="tasks" className="flex items-center space-x-2">
           <CheckSquare className="h-4 w-4" />
@@ -43,18 +62,35 @@ export function ProjectTabs({ project }: ProjectTabsProps) {
           <FileText className="h-4 w-4" />
           <span>Content</span>
         </TabsTrigger>
-        <TabsTrigger value="team" className="flex items-center space-x-2">
-          <Users className="h-4 w-4" />
-          <span>Team</span>
-        </TabsTrigger>
         <TabsTrigger value="documentation" className="flex items-center space-x-2">
-          <Settings className="h-4 w-4" />
+          <FolderCode className="h-4 w-4" />
           <span>Documentation</span>
         </TabsTrigger>
-        <TabsTrigger value="settings" className="flex items-center space-x-2">
-          <Settings className="h-4 w-4" />
-          <span>Settings</span>
-        </TabsTrigger>
+        
+
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild className="ml-auto">
+              <Button variant="default" size="xs">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Project Actions</DropdownMenuLabel>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                Project Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Users className="mr-2 h-4 w-4" />
+                Manage Team
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-red-600">
+                <Trash className="mr-2 h-4 w-4 text-red-600" />
+                Delete Project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
       </TabsList>
 
       <TabsContent value="overview">
@@ -79,6 +115,13 @@ export function ProjectTabs({ project }: ProjectTabsProps) {
 
       <TabsContent value="documentation">
         <ProjectDocumentation project={project} />
+      </TabsContent>
+
+      <TabsContent value="timeline">
+        <ProjectTimeline
+          project={project}
+          currentUserId={currentUserId}
+        />
       </TabsContent>
 
       <TabsContent value="settings">

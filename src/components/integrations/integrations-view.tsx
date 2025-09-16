@@ -43,10 +43,8 @@ import {
   Droplets,
   GitBranch
 } from 'lucide-react'
-import { integrations, webhooks, apiKeys, type Integration } from '@/lib/utils/dummy-data-integrations'
+import { integrations, webhooks } from '@/lib/utils/dummy-data-integrations'
 import { IntegrationCard } from './integration-card'
-import { WebhooksList } from './webhooks-list'
-import { ApiKeysList } from './api-keys-list'
 
 // Icon mapping for integrations
 const iconMap = {
@@ -141,7 +139,7 @@ export function IntegrationsView() {
         {/* Integrations Tab */}
         <div className="space-y-6">
           {/* Category Filter */}
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap gap-4 mb-6">
             {categories.map((category) => {
               const IconComponent = category.icon
               return (

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProjectTimeline } from "./project-timeline";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 

@@ -57,8 +57,8 @@ export function LoginForm() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">Sign in to Droplog</CardTitle>
+      <CardHeader className="p-8">
+        <CardTitle className="text-2xl text-center">Welcome back!</CardTitle>
         <CardDescription className="text-center">
           Enter your email and password to access your workspace
         </CardDescription>
@@ -135,22 +135,6 @@ export function LoginForm() {
             </Link>
           </div>
         </form>
-
-        {/* Demo credentials */}
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <p className="text-sm font-medium mb-2">Demo Credentials:</p>
-          <p className="text-xs text-muted-foreground">
-            Use any email and password to access the demo workspace
-          </p>
-          <div className="mt-2 space-y-1">
-            <p className="text-xs">
-              <strong>Email:</strong> demo@droplog.com
-            </p>
-            <p className="text-xs">
-              <strong>Password:</strong> password123
-            </p>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

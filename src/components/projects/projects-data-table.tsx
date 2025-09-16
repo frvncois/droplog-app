@@ -499,21 +499,6 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
         </div>
       </div>
 
-      {/* Active Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {searchTerm && (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            Search: "{searchTerm}"
-            <button
-              onClick={() => setSearchTerm('')}
-              className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
-            >
-              ×
-            </button>
-          </Badge>
-        )}
-      </div>
-      
       {/* Conditional rendering based on view mode */}
       {viewMode === 'list' ? (
         <div className="overflow-hidden rounded-lg border">
@@ -575,7 +560,7 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
               const activeTasks = projectTasks.filter(t => t.status !== "completed");
               
               return (
-                <Card key={project.id} className="group hover:shadow-md transition-all duration-200">
+                <Card key={project.id} className="group justify-between">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
