@@ -185,64 +185,6 @@ export function ProjectSettings({ project }: ProjectSettingsProps) {
         </CardContent>
       </Card>
 
-      {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Bell className="h-5 w-5" />
-            <span>Notifications</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-sm">Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">
-                Receive email updates about project activity
-              </p>
-            </div>
-            <Switch
-              checked={formData.emailNotifications}
-              onCheckedChange={(checked) => handleInputChange("emailNotifications", checked)}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-sm">Slack Notifications</Label>
-              <p className="text-sm text-muted-foreground">
-                Send updates to connected Slack channels
-              </p>
-            </div>
-            <Switch
-              checked={formData.slackNotifications}
-              onCheckedChange={(checked) => handleInputChange("slackNotifications", checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Automation */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Automation</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-sm">Auto Archive</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically archive when all tasks are completed
-              </p>
-            </div>
-            <Switch
-              checked={formData.autoArchive}
-              onCheckedChange={(checked) => handleInputChange("autoArchive", checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Project Information */}
       <Card>
         <CardHeader>

@@ -18,11 +18,13 @@ import {
   Eye,
   Zap,
   CalendarDays,
-  CalendarRange
+  CalendarRange,
+  Clock
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   Project,
   Task
@@ -41,14 +43,16 @@ import {
   subWeeks, 
   subMonths,
   parseISO,
-  isToday
+  isToday,
+  isBefore,
+  startOfDay
 } from "date-fns";
 import { cn } from "@/lib/utils";
 
 import { EventViewModal } from "@/components/modals/event-view-modal";
 import { EventCreateModal } from "@/components/modals/event-create-modal";
+import { tasks as allTasks } from "@/lib/utils/dummy-data";
 
-// Timeline event interface
 interface TimelineEvent {
   id: string;
   projectId: string;
@@ -62,12 +66,14 @@ interface TimelineEvent {
   isVirtual?: boolean;
   attendees?: string[];
   organizer?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: 'low' | 'medium' | 'high' | 'critical'; 
   tags?: string[];
   attachments?: string[];
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  isTask?: boolean;
+  taskId?: string;
 }
 
 // Props interface
@@ -75,7 +81,7 @@ interface ProjectTimelineProps {
   project: Project;
   tasks?: Task[];
   events?: TimelineEvent[];
-  currentUserId?: string; // Add currentUserId prop
+  currentUserId?: string;
 }
 
 // Mock timeline events data
@@ -148,21 +154,27 @@ const getEventTypeIcon = (type: string) => {
   return icons[type] || Calendar;
 };
 
-// Status colors
-const getStatusColor = (status: string) => {
+// Status colors with improved task status support
+const getStatusColor = (status: string, isOverdue = false) => {
+  if (isOverdue) {
+    return "bg-red-100 text-red-800 border-red-200";
+  }
+  
   const colors: Record<string, string> = {
     completed: "bg-green-100 text-green-800 border-green-200",
     in_progress: "bg-blue-100 text-blue-800 border-blue-200",
     scheduled: "bg-gray-100 text-gray-800 border-gray-200",
+    todo: "bg-yellow-100 text-yellow-800 border-yellow-200",
     cancelled: "bg-red-100 text-red-800 border-red-200",
     overdue: "bg-red-100 text-red-800 border-red-200"
   };
   return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
 };
 
-// Priority colors
+// Priority colors with urgent mapped to critical
 const getPriorityColor = (priority: string) => {
   const colors: Record<string, string> = {
+    urgent: "border-l-red-600", // Map urgent to red for visual consistency
     critical: "border-l-red-500",
     high: "border-l-orange-500",
     medium: "border-l-yellow-500",
@@ -171,32 +183,71 @@ const getPriorityColor = (priority: string) => {
   return colors[priority] || "border-l-gray-300";
 };
 
-// Convert tasks to timeline events
+// Enhanced task to timeline event conversion
 const tasksToTimelineEvents = (tasks: Task[]): TimelineEvent[] => {
   return tasks
-    .filter(task => task.dueDate)
-    .map(task => ({
-      id: `task-${task.id}`,
-      projectId: task.projectId,
-      title: task.title,
-      description: task.description,
-      type: 'task' as const,
-      status: task.status === 'completed' ? 'completed' as const : 
-              task.status === 'in_progress' ? 'in_progress' as const : 'scheduled' as const,
-      startDate: `${task.dueDate}T23:59:59Z`,
-      priority: task.priority as 'low' | 'medium' | 'high' | 'critical',
-      organizer: task.assignedTo,
-      tags: ['task'],
-      createdAt: task.createdAt,
-      updatedAt: task.updatedAt
-    }));
+    .filter(task => task.dueDate) // Only include tasks with due dates
+    .map(task => {
+      const today = startOfDay(new Date());
+      const dueDate = startOfDay(parseISO(task.dueDate!));
+      const isOverdue = isBefore(dueDate, today) && task.status !== 'completed';
+      
+      // Map task status to timeline event status
+      let eventStatus: TimelineEvent['status'];
+      if (isOverdue) {
+        eventStatus = 'overdue';
+      } else {
+        switch (task.status) {
+          case 'completed':
+            eventStatus = 'completed';
+            break;
+          case 'in_progress':
+            eventStatus = 'in_progress';
+            break;
+          case 'todo':
+            eventStatus = 'scheduled';
+            break;
+          case 'cancelled':
+            eventStatus = 'cancelled';
+            break;
+          default:
+            eventStatus = 'scheduled';
+        }
+      }
+
+      // Map task priority to timeline event priority (convert urgent to critical for modal compatibility)
+      let eventPriority: TimelineEvent['priority'];
+      if (task.priority === 'urgent') {
+        eventPriority = 'critical'; // Map urgent to critical for modal compatibility
+      } else {
+        eventPriority = task.priority as TimelineEvent['priority'];
+      }
+
+      return {
+        id: `task-${task.id}`,
+        projectId: task.projectId,
+        title: task.title,
+        description: task.description,
+        type: 'task' as const,
+        status: eventStatus,
+        startDate: `${task.dueDate}T23:59:59Z`, // End of day for due date
+        priority: eventPriority,
+        organizer: task.assignedTo,
+        tags: ['task', 'due-date'],
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+        isTask: true,
+        taskId: task.id,
+        notes: task.comments?.join('; ') || undefined
+      } as TimelineEvent;
+    });
 };
 
 export function ProjectTimeline({ 
   project, 
   tasks = [], 
   events: externalEvents,
-  currentUserId = "u1" // Default to u1 if not provided
+  currentUserId = "u1"
 }: ProjectTimelineProps) {
   // State
   const [currentDate, setCurrentDate] = React.useState(new Date());
@@ -209,43 +260,26 @@ export function ProjectTimeline({
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<TimelineEvent | null>(null);
 
-  // Initialize events
+  // Get tasks for current project from dummy data
+  const projectTasks = allTasks.filter(task => task.projectId === project.id);
+
+
+  // Initialize events once
   React.useEffect(() => {
-    const taskEvents = tasksToTimelineEvents(tasks);
+    const taskEvents = tasksToTimelineEvents(projectTasks);
     const projectEvents = externalEvents || mockEvents.filter(e => e.projectId === project.id);
-    const newEvents = [...projectEvents, ...taskEvents];
+    const allEvents = [...projectEvents, ...taskEvents];
     
-    // Only update if events actually changed
-    setEvents(prevEvents => {
-      const eventsChanged = prevEvents.length !== newEvents.length || 
-        !prevEvents.every(event => newEvents.some(newEvent => newEvent.id === event.id));
-      
-      return eventsChanged ? newEvents : prevEvents;
-    });
-  }, [project.id]); // Remove tasks and externalEvents from dependencies
-
-  // Separate effect for tasks changes
-  React.useEffect(() => {
-    if (tasks.length > 0) {
-      const taskEvents = tasksToTimelineEvents(tasks);
-      setEvents(prevEvents => {
-        // Remove old task events and add new ones
-        const nonTaskEvents = prevEvents.filter(event => !event.id.startsWith('task-'));
-        return [...nonTaskEvents, ...taskEvents];
-      });
-    }
-  }, [tasks.length]); // Only depend on tasks length, not the array itself
-
-  // Separate effect for external events
-  React.useEffect(() => {
-    if (externalEvents) {
-      setEvents(prevEvents => {
-        // Remove old external events and add new ones
-        const taskEvents = prevEvents.filter(event => event.id.startsWith('task-'));
-        return [...externalEvents, ...taskEvents];
-      });
-    }
-  }, [externalEvents?.length]); // Only depend on external events length
+    console.log('ProjectTimeline - Task events created:', taskEvents);
+    console.log('ProjectTimeline - All events:', allEvents);
+    
+    // Sort events by start date
+    const sortedEvents = allEvents.sort((a, b) => 
+      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
+    
+    setEvents(sortedEvents);
+  }, []); // Empty dependency - only run once
 
   // Calendar calculations
   const calendarStart = React.useMemo(() => {
@@ -270,7 +304,9 @@ export function ProjectTimeline({
 
   // Event handlers
   const getEventsForDay = (day: Date) => {
-    return events.filter(event => isSameDay(parseISO(event.startDate), day));
+    const dayEvents = events.filter(event => isSameDay(parseISO(event.startDate), day));
+    console.log(`Events for ${format(day, 'yyyy-MM-dd')}:`, dayEvents);
+    return dayEvents;
   };
 
   const handlePrevious = () => {
@@ -291,12 +327,6 @@ export function ProjectTimeline({
 
   const handleToday = () => {
     setCurrentDate(new Date());
-  };
-
-  const handleViewModeChange = (value: string) => {
-    if (value === 'week' || value === 'month') {
-      setViewMode(value);
-    }
   };
 
   const handleEventClick = (event: TimelineEvent) => {
@@ -339,11 +369,14 @@ export function ProjectTimeline({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    setEvents(prev => [...prev, newEvent]);
+    setEvents(prev => [...prev, newEvent].sort((a, b) => 
+      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    ));
   };
 
   const handleUpdateEvent = (updatedEvent: TimelineEvent) => {
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e)
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()));
   };
 
   // Calendar title
@@ -357,6 +390,20 @@ export function ProjectTimeline({
     }
   };
 
+  // Statistics for header
+  const taskStats = React.useMemo(() => {
+    const taskEvents = events.filter(e => e.isTask);
+    const overdueTasks = taskEvents.filter(e => e.status === 'overdue').length;
+    const dueTodayTasks = taskEvents.filter(e => 
+      isSameDay(parseISO(e.startDate), new Date())
+    ).length;
+    const upcomingTasks = taskEvents.filter(e => 
+      e.status === 'scheduled' && !isSameDay(parseISO(e.startDate), new Date())
+    ).length;
+
+    return { overdue: overdueTasks, dueToday: dueTodayTasks, upcoming: upcomingTasks };
+  }, [events]);
+
   // Render calendar views
   const renderWeekView = () => {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -364,7 +411,7 @@ export function ProjectTimeline({
     return (
       <div className="grid grid-cols-7 gap-px bg-muted border rounded-xl overflow-hidden">
         {weekDays.map((day) => (
-          <div key={day} className="bg-muted p-2 text-center text-sm font-medium text-gray-700">
+          <div key={day} className="bg-foreground p-2 text-center text-sm font-medium text-background">
             {day}
           </div>
         ))}
@@ -383,40 +430,52 @@ export function ProjectTimeline({
               )}
             >
               <div className={cn(
-                "text-sm font-medium mb-2",
-                isDayToday && "bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                "text-sm font-medium mb-2 flex items-center justify-center",
+                isDayToday && "bg-blue-600 text-white rounded-full w-6 h-6"
               )}>
                 {format(day, 'd')}
               </div>
               
               <div className="space-y-1">
-                {dayEvents.slice(0, 3).map((event) => {
+                {dayEvents.slice(0, 4).map((event) => {
                   const IconComponent = getEventTypeIcon(event.type);
+                  const isOverdue = event.status === 'overdue';
+                  const isUrgentTask = event.isTask && event.priority === 'critical'; // Since we map urgent to critical
                   
                   return (
                     <div
                       key={event.id}
                       onClick={() => handleEventClick(event)}
                       className={cn(
-                        "p-1 rounded text-xs border-l-2 cursor-pointer hover:shadow-sm transition-shadow",
-                        getStatusColor(event.status),
-                        getPriorityColor(event.priority)
+                        "p-1.5 rounded text-xs border-l-2 cursor-pointer hover:shadow-sm transition-all",
+                        getStatusColor(event.status, isOverdue),
+                        getPriorityColor(isUrgentTask ? 'urgent' : event.priority) // Show urgent color for original urgent tasks
                       )}
                     >
                       <div className="flex items-center space-x-1">
                         <IconComponent className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate font-medium">{event.title}</span>
+                        {event.isTask && (
+                          <Badge variant="secondary" className="text-xs ml-1 px-1">Task</Badge>
+                        )}
                       </div>
-                      <div className="text-xs opacity-75 mt-0.5">
-                        {format(parseISO(event.startDate), 'h:mm a')}
+                      <div className="text-xs opacity-75 mt-0.5 flex items-center">
+                        {event.isTask ? (
+                          <>
+                            <Clock className="h-3 w-3 mr-1" />
+                            Due {format(parseISO(event.startDate), 'h:mm a')}
+                          </>
+                        ) : (
+                          format(parseISO(event.startDate), 'h:mm a')
+                        )}
                       </div>
                     </div>
                   );
                 })}
                 
-                {dayEvents.length > 3 && (
+                {dayEvents.length > 4 && (
                   <div className="text-xs text-gray-500 p-1">
-                    +{dayEvents.length - 3} more
+                    +{dayEvents.length - 4} more
                   </div>
                 )}
               </div>
@@ -457,29 +516,31 @@ export function ProjectTimeline({
                   <div
                     key={day.toISOString()}
                     className={cn(
-                      "bg-white p-2 min-h-[100px] transition-colors hover:bg-gray-50",
+                      "bg-white p-2 min-h-[120px] transition-colors hover:bg-gray-50",
                       !isCurrentMonth && "bg-gray-50 text-gray-400"
                     )}
                   >
                     <div className={cn(
-                      "text-sm font-medium mb-2",
-                      isDayToday && "bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                      "text-sm font-medium mb-2 flex items-center justify-center",
+                      isDayToday && "bg-blue-600 text-white rounded-full w-6 h-6"
                     )}>
                       {format(day, 'd')}
                     </div>
                     
                     <div className="space-y-1">
-                      {dayEvents.slice(0, 2).map((event) => {
+                      {dayEvents.slice(0, 3).map((event) => {
                         const IconComponent = getEventTypeIcon(event.type);
+                        const isOverdue = event.status === 'overdue';
+                        const isUrgentTask = event.isTask && event.priority === 'critical';
                         
                         return (
                           <div
                             key={event.id}
                             onClick={() => handleEventClick(event)}
                             className={cn(
-                              "p-1 rounded text-xs border-l-2 cursor-pointer hover:shadow-sm transition-shadow",
-                              getStatusColor(event.status),
-                              getPriorityColor(event.priority)
+                              "p-1 rounded text-xs border-l-2 cursor-pointer hover:shadow-sm transition-all",
+                              getStatusColor(event.status, isOverdue),
+                              getPriorityColor(isUrgentTask ? 'urgent' : event.priority)
                             )}
                           >
                             <div className="flex items-center space-x-1">
@@ -490,9 +551,9 @@ export function ProjectTimeline({
                         );
                       })}
                       
-                      {dayEvents.length > 2 && (
+                      {dayEvents.length > 3 && (
                         <div className="text-xs text-gray-500 p-1">
-                          +{dayEvents.length - 2} more
+                          +{dayEvents.length - 3} more
                         </div>
                       )}
                     </div>
@@ -508,13 +569,25 @@ export function ProjectTimeline({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header with Task Statistics */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Project Timeline</h2>
-          <p className="text-muted-foreground text-sm">
-            Track events, milestones, and task deadlines for {project.title}
-          </p>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-medium">Project Timeline</h2>
+              {taskStats.overdue > 0 && (
+                <Badge variant="destructive" className="text-xs">
+                  {taskStats.overdue} overdue
+                </Badge>
+              )}
+              {taskStats.dueToday > 0 && (
+                <Badge variant="default" className="text-xs">
+                  {taskStats.dueToday} due today
+                </Badge>
+              )}
+              {taskStats.upcoming > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {taskStats.upcoming} upcoming
+                </Badge>
+              )}
         </div>
         <Button onClick={handleAddEvent}>
           <Plus className="h-4 w-4 mr-2" />
@@ -523,91 +596,46 @@ export function ProjectTimeline({
       </div>
 
       {/* Calendar Controls */}
-
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-1">
-                <Button variant="outline" size="sm" onClick={handlePrevious}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleToday} className="min-w-[80px]">
-                  Today
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleNext}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <h3 className="text-lg font-semibold">{getCalendarTitle()}</h3>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              {/* View Mode Toggle */}
-              <div className="flex border rounded-md">
-                <Button
-                  variant={viewMode === 'week' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('week')}
-                  className="rounded-r-none"
-                >
-                  <Columns2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'month' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('month')}
-                  className="rounded-l-none"
-                >
-                  <Grid2X2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1">
+            <Button variant="outline" size="sm" onClick={handlePrevious}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleToday} className="min-w-[80px]">
+              Today
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
+          <h3 className="text-lg font-semibold">{getCalendarTitle()}</h3>
+        </div>
         
-          {viewMode === 'week' ? renderWeekView() : renderMonthView()}
-
-      {/* Event Legend */}
-      <Card>
-        <CardHeader>
-          <div className="text-base">Event Types</div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { type: 'meeting', label: 'Meetings', icon: Users },
-              { type: 'milestone', label: 'Milestones', icon: Target },
-              { type: 'deadline', label: 'Deadlines', icon: AlertTriangle },
-              { type: 'review', label: 'Reviews', icon: Eye },
-              { type: 'delivery', label: 'Deliveries', icon: Package },
-              { type: 'launch', label: 'Launches', icon: Zap },
-              { type: 'task', label: 'Tasks', icon: CheckCircle },
-              { type: 'event', label: 'Events', icon: Calendar }
-            ].map(({ type, label, icon: Icon }) => (
-              <div key={type} className="flex items-center space-x-2">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{label}</span>
-              </div>
-            ))}
+        <div className="flex items-center space-x-2">
+          {/* View Mode Toggle */}
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === 'week' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('week')}
+              className="rounded-r-none"
+            >
+              <Columns2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'month' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('month')}
+              className="rounded-l-none"
+            >
+              <Grid2X2 className="h-4 w-4" />
+            </Button>
           </div>
-          
-          <div className="mt-4 pt-4 border-t">
-            <h4 className="text-sm font-medium mb-2">Priority Levels</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { priority: 'low', label: 'Low', color: 'border-l-green-500' },
-                { priority: 'medium', label: 'Medium', color: 'border-l-yellow-500' },
-                { priority: 'high', label: 'High', color: 'border-l-orange-500' },
-                { priority: 'critical', label: 'Critical', color: 'border-l-red-500' }
-              ].map(({ priority, label, color }) => (
-                <div key={priority} className="flex items-center space-x-2">
-                  <div className={cn("w-3 h-3 border-l-4", color)}></div>
-                  <span className="text-sm">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+        
+      {viewMode === 'week' ? renderWeekView() : renderMonthView()}
 
       {/* Modals */}
       <EventViewModal

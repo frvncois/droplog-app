@@ -3,7 +3,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -15,38 +14,18 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
-  Row,
 } from "@tanstack/react-table";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  UniqueIdentifier,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { 
-  Plus,
-  Settings, 
-  UserMinus, 
   MoreVertical,
+  Eye,
   Search,
   Filter,
   SortAsc,
   Grid,
   List,
-  GripVertical,
+  Plus,
+  Settings,
+  UserMinus,
   Info,
   Mail,
   MessageCircle,
@@ -57,7 +36,11 @@ import {
   CheckCircle,
   Clock,
   Target,
-  UserPlus
+  UserPlus,
+  Edit,
+  Shield,
+  Star,
+  Activity
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -69,17 +52,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -107,6 +80,8 @@ import {
 } from "@/lib/utils/dummy-data";
 import { format } from "date-fns";
 import { formatRelativeTime } from "@/lib/utils";
+import { TeamSheetModal } from "@/components/modals/team-sheet-modal";
+import { TeamAddModal } from "@/components/modals/team-add-modal";
 
 // Extended team member interface with project-specific data
 interface ProjectTeamMember extends TeamMember {
@@ -132,6 +107,22 @@ const getRoleBadgeColor = (role: string) => {
   }
 };
 
+const getRoleIcon = (role: string) => {
+  switch (role) {
+    case "admin":
+      return <Crown className="h-4 w-4 text-red-500" />;
+    case "manager":
+      return <Shield className="h-4 w-4 text-purple-500" />;
+    case "designer":
+      return <Star className="h-4 w-4 text-blue-500" />;
+    case "developer":
+      return <Settings className="h-4 w-4 text-green-500" />;
+    case "content_writer":
+      return <Edit className="h-4 w-4 text-yellow-500" />;
+    default:
+      return <User className="h-4 w-4 text-gray-500" />;
+  }
+};
 
 // Role filter options
 const roleOptions = [
@@ -151,50 +142,6 @@ const sortOptions = [
   { value: "activeTasks", label: "Active Tasks" },
   { value: "joinedAt", label: "Join Date" },
 ];
-
-// Drag handle component following Shadcn pattern
-function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({
-    id,
-  });
-
-  return (
-    <div
-      {...attributes}
-      {...listeners}
-      className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1"
-    >
-      <GripVertical className="h-3 w-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </div>
-  );
-}
-
-// Draggable row component following Shadcn pattern
-function DraggableRow({ row }: { row: Row<ProjectTeamMember> }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  });
-
-  return (
-    <TableRow
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 hover:bg-muted/50"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id}>
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-}
 
 interface ProjectTeamListProps {
   project: Project;
@@ -236,7 +183,6 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
   
   // Filter states
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -244,40 +190,59 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
   const [sortBy, setSortBy] = React.useState("name");
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
-  // Add member modal state
+  // Modal states
+  const [selectedMember, setSelectedMember] = React.useState<ProjectTeamMember | null>(null);
+  const [isTeamSheetOpen, setIsTeamSheetOpen] = React.useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
-  const [selectedRole, setSelectedRole] = React.useState("");
-  const [selectedMember, setSelectedMember] = React.useState("");
 
-  // Drag and drop setup
-  const sortableId = React.useId();
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // Function to open team sheet modal
+  const openTeamSheet = (member: ProjectTeamMember) => {
+    setSelectedMember(member);
+    setIsTeamSheetOpen(true);
+  };
 
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
-  );
+  // Function to handle role change
+  const handleRoleChange = (member: ProjectTeamMember, newRole: string) => {
+    const updatedMember: ProjectTeamMember = {
+      ...member,
+      role: newRole as any,
+    };
+    
+    setData(prev => prev.map(m => m.id === member.id ? updatedMember : m));
+    console.log(`Member "${member.name}" role changed to:`, newRole);
+  };
 
-  // Handle drag end
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
-      });
+  // Function to handle member addition
+  const handleAddMember = (memberData: { memberId: string; role: string }) => {
+    const member = getTeamMemberById(memberData.memberId);
+    if (!member) return;
+    
+    const tasks = getTasksByProjectId(project.id).filter(task => task.assignedTo === member.id);
+    const completedTasks = tasks.filter(task => task.status === "completed");
+    
+    const newProjectMember: ProjectTeamMember = {
+      ...member,
+      role: memberData.role as any,
+      totalTasks: tasks.length,
+      completedTasks: completedTasks.length,
+      activeTasks: tasks.length - completedTasks.length
+    };
+    
+    setData(prev => [newProjectMember, ...prev]);
+    console.log('Added member to project:', newProjectMember);
+  };
+
+  // Function to handle member removal
+  const handleRemoveMember = (member: ProjectTeamMember) => {
+    if (confirm(`Are you sure you want to remove "${member.name}" from this project?`)) {
+      setData(prev => prev.filter(m => m.id !== member.id));
+      console.log('Removed member from project:', member.name);
     }
-  }
+  };
 
   // Get available team members not in project
   const availableMembers = team.filter(member => 
-    !project.assignedTo?.includes(member.id)
+    !data.some(projectMember => projectMember.id === member.id)
   );
 
   // Filter and sort team members
@@ -320,14 +285,19 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
     return filtered;
   }, [data, searchTerm, roleFilter, sortBy]);
 
-  const teamColumns: ColumnDef<ProjectTeamMember>[] = [
+const teamColumns: ColumnDef<ProjectTeamMember>[] = [
     {
-      id: "drag",
-      header: () => null,
-      cell: ({ row }) => <DragHandle id={row.original.id} />,
-      enableSorting: false,
-      enableHiding: false,
-      size: 24,
+      id: "roleIcon", // Changed from accessorKey: "role" to unique id
+      header: () => '',
+      cell: ({ row }) => {
+        const role = row.original.role; // Access role from row.original instead
+        return (
+          <div className="p-2 rounded-md flex flex-col items-center bg-secondary">
+            {getRoleIcon(role)}
+          </div>
+        );
+      },
+      size: 50,
     },
     {
       accessorKey: "name",
@@ -336,24 +306,28 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
         const member = row.original;
         
         return (
-          <div className="flex items-center space-x-3 p-2">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={member.avatarUrl} />
-              <AvatarFallback>
-                {member.name.split(" ").map(n => n[0]).join("")}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col min-w-0">
-              <div className="font-medium hover:text-primary transition-colors cursor-pointer">
+          <div className="flex flex-col p-2">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={member.avatarUrl} />
+                <AvatarFallback>
+                  {member.name.split(" ").map(n => n[0]).join("")}
+                </AvatarFallback>
+              </Avatar>
+              <Button 
+                variant="link" 
+                className="p-0 h-auto font-medium hover:text-primary transition-colors cursor-pointer text-left justify-start"
+                onClick={() => openTeamSheet(member)}
+              >
                 {member.name}
-              </div>
+              </Button>
             </div>
           </div>
         );
       },
     },
     {
-      accessorKey: "role",
+      accessorKey: "role", // Keep this one as is
       header: "Role",
       cell: ({ row }) => {
         const role = row.getValue("role") as string;
@@ -416,7 +390,7 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
         
         return (
           <div className="flex flex-col">
-            <div>{format(new Date(joinedAt), "MMM yyyy")}</div>
+            <div className="text-sm">{formatRelativeTime(joinedAt)}</div>
           </div>
         );
       },
@@ -437,7 +411,7 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => console.log('View profile:', member.name)}>
+              <DropdownMenuItem onClick={() => openTeamSheet(member)}>
                 <Info className="mr-2 h-4 w-4" />
                 View profile
               </DropdownMenuItem>
@@ -446,12 +420,34 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
                 View tasks
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => console.log('Change role:', member.name)}>
-                <Settings className="mr-2 h-4 w-4" />
-                Change role
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Change role
+                  </DropdownMenuItem>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="left" align="start">
+                  <DropdownMenuLabel>Select Role</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {roleOptions.filter(role => role.value !== "all" && role.value !== member.role).map((role) => (
+                    <DropdownMenuItem 
+                      key={role.value} 
+                      onClick={() => handleRoleChange(member, role.value)}
+                      className="flex items-center gap-2"
+                    >
+                      {getRoleIcon(role.value)}
+                      {role.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenuItem onClick={() => console.log('Send message:', member.name)}>
+                <Mail className="mr-2 h-4 w-4" />
+                Send message
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500" onClick={() => console.log('Remove member:', member.name)}>
+              <DropdownMenuItem className="text-red-500" onClick={() => handleRemoveMember(member)}>
                 <UserMinus className="mr-2 h-4 w-4 text-red-500" />
                 Remove from project
               </DropdownMenuItem>
@@ -472,29 +468,20 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     getRowId: (row) => row.id,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
   });
-
-  const handleAddMember = () => {
-    // In a real app, this would make an API call
-    console.log("Adding member:", selectedMember, "with role:", selectedRole);
-    setIsAddMemberOpen(false);
-    setSelectedMember("");
-    setSelectedRole("");
-  };
 
   // Team stats
   const totalMembers = data.length;
   const activeMembers = data.filter(m => m.activeTasks > 0).length;
   const totalTasks = data.reduce((sum, member) => sum + member.totalTasks, 0);
   const completedTasks = data.reduce((sum, member) => sum + member.completedTasks, 0);
+  const teamCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -507,11 +494,10 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
           </p>
         </div>
         <div className="flex items-center gap-2">
-
-              <Button>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Member
-              </Button>
+          <Button onClick={() => setIsAddMemberOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Member
+          </Button>
         </div>
       </div>
 
@@ -520,37 +506,57 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary">
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalMembers}</div>
+            <p className="text-xs text-muted-foreground">
+              {activeMembers} currently active
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Team Progress</CardTitle>
+            <div className="p-2 rounded-md bg-secondary">
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeMembers}</div>
+            <div className="text-2xl font-bold">{teamCompletionRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              Overall completion rate
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary">
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTasks}</div>
+            <p className="text-xs text-muted-foreground">
+              Assigned to team
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary">
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedTasks}</div>
+            <p className="text-xs text-muted-foreground">
+              Tasks completed
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -622,82 +628,54 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
         </div>
       </div>
 
-
-      {/* Selection Info */}
-      {Object.keys(rowSelection).length > 0 && (
-        <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
-          <div className="text-sm">
-            {Object.keys(rowSelection).length} team member(s) selected
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline">
-              <Mail className="h-4 w-4 mr-2" />
-              Send Message
-            </Button>
-            <Button size="sm" variant="outline">
-              <Target className="h-4 w-4 mr-2" />
-              Assign Tasks
-            </Button>
-            <Button size="sm" variant="destructive">
-              <UserMinus className="h-4 w-4 mr-2" />
-              Remove Selected
-            </Button>
-          </div>
-        </div>
-      )}
-      
       {/* Conditional rendering based on view mode */}
       {viewMode === 'list' ? (
-        <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} colSpan={header.colSpan}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader className="bg-muted sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className="hover:bg-muted/50"
                   >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
                     ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={teamColumns.length}
-                      className="h-24 text-center"
-                    >
-                      No team members found.
-                    </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={teamColumns.length}
+                    className="h-24 text-center"
+                  >
+                    No team members found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -708,23 +686,21 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
                 : 0;
               
               return (
-                <Card key={member.id} className="group hover:shadow-md transition-all duration-200">
+                <Card key={member.id} className="group hover:shadow-sm transition-all duration-200">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
+                            <div className="p-2 rounded-md bg-secondary">
+                              {getRoleIcon(member.role)}
+                            </div>
                             <Avatar className="h-12 w-12">
                               <AvatarImage src={member.avatarUrl} />
                               <AvatarFallback>
                                 {member.name.split(" ").map(n => n[0]).join("")}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer">
-                                {member.name}
-                              </CardTitle>
-                            </div>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -734,31 +710,64 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => console.log('View profile:', member.name)}>
-                                  <Info className="mr-2 h-4 w-4" />
-                                  View profile
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => console.log('View tasks:', member.name)}>
-                                  <Target className="mr-2 h-4 w-4" />
-                                  View tasks
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => console.log('Change role:', member.name)}>
-                                  <Settings className="mr-2 h-4 w-4" />
-                                  Change role
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-500" onClick={() => console.log('Remove member:', member.name)}>
-                                  <UserMinus className="mr-2 h-4 w-4 text-red-500" />
-                                  Remove from project
-                                </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openTeamSheet(member)}>
+                                <Info className="mr-2 h-4 w-4" />
+                                View profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => console.log('View tasks:', member.name)}>
+                                <Target className="mr-2 h-4 w-4" />
+                                View tasks
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    Change role
+                                  </DropdownMenuItem>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent side="left" align="start">
+                                  <DropdownMenuLabel>Select Role</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {roleOptions.filter(role => role.value !== "all" && role.value !== member.role).map((role) => (
+                                    <DropdownMenuItem 
+                                      key={role.value} 
+                                      onClick={() => handleRoleChange(member, role.value)}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {getRoleIcon(role.value)}
+                                      {role.label}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <DropdownMenuItem onClick={() => console.log('Send message:', member.name)}>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send message
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-500" onClick={() => handleRemoveMember(member)}>
+                                <UserMinus className="mr-2 h-4 w-4 text-red-500" />
+                                Remove from project
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                        <div className="mt-3 flex items-center gap-2">
-                          <Badge className={getRoleBadgeColor(member.role)}>
-                            {member.role.replace("_", " ")}
-                          </Badge>
+                        <div className="mt-3">
+                          <Button 
+                            variant="link" 
+                            className="p-0 h-auto text-left justify-start"
+                            onClick={() => openTeamSheet(member)}
+                          >
+                            <CardTitle className="text-lg hover:text-primary transition-colors">
+                              {member.name}
+                            </CardTitle>
+                          </Button>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Badge className={getRoleBadgeColor(member.role)}>
+                              {member.role.replace("_", " ")}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -802,6 +811,15 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
                           Joined {member.joinedAt ? format(new Date(member.joinedAt), "MMM yyyy") : "Unknown"}
                         </div>
                       </div>
+
+                      {/* View Profile Button */}
+                      <Button 
+                        variant="default"
+                        className="w-full" 
+                        onClick={() => openTeamSheet(member)}
+                      >
+                        View Profile
+                      </Button>
                       
                     </div>
                   </CardContent>
@@ -809,8 +827,8 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
               );
             })
           ) : (
-            <div className="col-span-full flex items-center justify-center h-32 text-muted-foreground">
-              No team members found.
+            <div className="col-span-full text-sm flex items-center border rounded-xl justify-center h-32 bg-card text-muted-foreground">
+              <p>No team members found.</p>
             </div>
           )}
         </div>
@@ -818,8 +836,6 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
       
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} team member(s) selected.
           Showing {table.getRowModel().rows.length} of {filteredAndSortedTeamMembers.length} team members.
         </div>
         <div className="space-x-2">
@@ -841,6 +857,22 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
           </Button>
         </div>
       </div>
+
+      {/* Team Sheet Modal */}
+      <TeamSheetModal
+        member={selectedMember}
+        open={isTeamSheetOpen}
+        onOpenChange={setIsTeamSheetOpen}
+        project={project}
+      />
+
+      {/* Team Add Modal */}
+      <TeamAddModal
+        open={isAddMemberOpen}
+        onOpenChange={setIsAddMemberOpen}
+        availableMembers={availableMembers}
+        onAddMember={handleAddMember}
+      />
     </div>
   );
 }

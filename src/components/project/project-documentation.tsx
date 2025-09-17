@@ -1,4 +1,4 @@
-// components/projects/project-documentation.tsx - CLEANED
+// components/projects/project-documentation.tsx
 
 "use client";
 
@@ -59,7 +59,11 @@ import {
   getTeamMemberById 
 } from "@/lib/utils/dummy-data";
 import { formatRelativeTime } from "@/lib/utils";
-import { DocumentCreateModal } from "@/components/modals/document-create-modal";
+
+// Import the modal components
+import { DocumentationCreateModal } from "@/components/modals/documentation-create-modal";
+import { DocumentationEditModal } from "@/components/modals/documentation-edit-modal";
+import { DocumentationSheetModal } from "@/components/modals/documentation-sheet-modal";
 
 // Documentation interface
 interface Documentation {
@@ -237,7 +241,10 @@ function DraggableCard({ doc, onAction }: { doc: Documentation; onAction: (actio
           <div className="flex items-center space-x-3 flex-1">
             <div className="text-2xl">{getCategoryIcon(doc.category)}</div>
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+              <CardTitle 
+                className="text-lg line-clamp-2 hover:text-primary transition-colors cursor-pointer"
+                onClick={() => onAction('view', doc)}
+              >
                 {doc.title}
               </CardTitle>
             </div>
@@ -261,6 +268,10 @@ function DraggableCard({ doc, onAction }: { doc: Documentation; onAction: (actio
               <DropdownMenuItem onClick={() => onAction('copy', doc)}>
                 <Copy className="mr-2 h-4 w-4" />
                 Copy link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAction('duplicate', doc)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-500" onClick={() => onAction('delete', doc)}>
@@ -315,6 +326,12 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
   const originalDocumentation = React.useMemo(() => getProjectDocumentation(project.id), [project.id]);
   const [data, setData] = React.useState(() => externalDocumentation || originalDocumentation);
 
+  // Modal states
+  const [createModalOpen, setCreateModalOpen] = React.useState(false);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [viewModalOpen, setViewModalOpen] = React.useState(false);
+  const [selectedDocument, setSelectedDocument] = React.useState<Documentation | null>(null);
+
   // Update data when external documentation changes
   React.useEffect(() => {
     if (externalDocumentation) {
@@ -328,7 +345,6 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
   const [searchTerm, setSearchTerm] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   const [sortBy, setSortBy] = React.useState("updatedAt");
-  const [createModalOpen, setCreateModalOpen] = React.useState(false);
 
   // Drag and drop setup
   const sortableId = React.useId();
@@ -395,13 +411,79 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
     return filtered;
   }, [data, searchTerm, categoryFilter, sortBy]);
 
+  // Handle document actions
   const handleDocumentAction = (action: string, document: Documentation) => {
-    console.log(`${action} document:`, document.id);
+    switch (action) {
+      case 'view':
+        setSelectedDocument(document);
+        setViewModalOpen(true);
+        break;
+      case 'edit':
+        setSelectedDocument(document);
+        setEditModalOpen(true);
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(`${window.location.origin}/docs/${document.id}`);
+        // You could add a toast notification here
+        break;
+      case 'duplicate':
+        const duplicatedDoc = {
+          ...document,
+          id: `doc-${Date.now()}`,
+          title: `${document.title} (Copy)`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setData(prev => [...prev, duplicatedDoc]);
+        break;
+      case 'delete':
+        if (confirm(`Are you sure you want to delete "${document.title}"?`)) {
+          setData(prev => prev.filter(doc => doc.id !== document.id));
+        }
+        break;
+    }
   };
 
-  const handleDocumentCreate = (newDocument: any) => {
-    console.log('Document created for project:', project.id, newDocument);
+  // Handle document creation
+  const handleDocumentCreate = (newDocument: Documentation) => {
+    setData(prev => [...prev, newDocument]);
     setCreateModalOpen(false);
+  };
+
+  // Handle document update
+  const handleDocumentUpdate = (updatedDocument: Documentation) => {
+    setData(prev => prev.map(doc => doc.id === updatedDocument.id ? updatedDocument : doc));
+    setEditModalOpen(false);
+    setSelectedDocument(null);
+  };
+
+  // Handle modal actions from view modal
+  const handleViewModalAction = (action: string, document: Documentation) => {
+    switch (action) {
+      case 'edit':
+        setViewModalOpen(false);
+        setSelectedDocument(document);
+        setEditModalOpen(true);
+        break;
+      case 'delete':
+        if (confirm(`Are you sure you want to delete "${document.title}"?`)) {
+          setData(prev => prev.filter(doc => doc.id !== document.id));
+          setViewModalOpen(false);
+          setSelectedDocument(null);
+        }
+        break;
+      case 'duplicate':
+        const duplicatedDoc = {
+          ...document,
+          id: `doc-${Date.now()}`,
+          title: `${document.title} (Copy)`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setData(prev => [...prev, duplicatedDoc]);
+        setViewModalOpen(false);
+        break;
+    }
   };
 
   return (
@@ -410,9 +492,6 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-medium tracking-tight">Documentation</h2>
-          <p className="text-muted-foreground text-sm">
-            Project guides, references, and knowledge base for {project.title}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={() => setCreateModalOpen(true)}>
@@ -515,11 +594,29 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
         </DndContext>
       )}
 
-      {/* Create Document Modal */}
-      <DocumentCreateModal
+      {/* Modal Components */}
+      <DocumentationCreateModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onDocumentCreated={handleDocumentCreate}
+        projectId={project.id}
+      />
+
+      <DocumentationEditModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        document={selectedDocument}
+        onSave={handleDocumentUpdate}
+        projectId={project.id}
+      />
+
+      <DocumentationSheetModal
+        open={viewModalOpen}
+        onOpenChange={setViewModalOpen}
+        document={selectedDocument}
+        onEdit={(doc) => handleViewModalAction('edit', doc)}
+        onDelete={(docId) => handleViewModalAction('delete', selectedDocument!)}
+        onDuplicate={(doc) => handleViewModalAction('duplicate', doc)}
       />
     </div>
   );
