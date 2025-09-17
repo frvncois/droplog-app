@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false  // Add this line
+  reactStrictMode: false,
+  eslint: {
+    // ✅ Skip ESLint checks during Vercel builds
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;

@@ -4,38 +4,20 @@ import { ProjectsPreview } from "@/components/workspace/projects-preview";
 import { ActivityFeed } from "@/components/workspace/activity-feed";
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { 
-  Upload, 
-  Search, 
-  Filter, 
   Plug,
   Bell,
   Users,
   Plus,
   Settings,
-  ArrowUpDown, 
-  Grid3X3, 
-  List,
-  Download,
-  MoreHorizontal 
 } from 'lucide-react'
 
 export default function WorkspacePage() {

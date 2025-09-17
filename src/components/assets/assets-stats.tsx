@@ -6,12 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { 
   File,
   HardDrive,
-  TrendingUp,
   Upload,
-  Image,
-  Video,
   FileText,
-  Folder
 } from "lucide-react";
 import { 
   assets, 

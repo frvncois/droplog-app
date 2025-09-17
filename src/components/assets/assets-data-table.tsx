@@ -14,7 +14,6 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { 
-  Upload,
   Download,
   MoreVertical,
   Eye,
@@ -23,7 +22,6 @@ import {
   SortAsc,
   Grid,
   List,
-  Plus,
   Edit,
   Copy,
   Trash2,
@@ -35,8 +33,6 @@ import {
   File,
   User,
   HardDrive,
-  Image,
-  FileX
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -71,10 +67,8 @@ import {
   Asset,
   assets,
   getProjectById,
-  getTeamMemberById,
-  projects
+  getTeamMemberById
 } from "@/lib/utils/dummy-data";
-import { format } from "date-fns";
 import { formatRelativeTime } from "@/lib/utils";
 import { AssetSheetModal } from "@/components/modals/asset-sheet-modal";
 import { AssetCreateModal } from "@/components/modals/asset-create-modal";

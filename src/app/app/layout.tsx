@@ -19,7 +19,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { GlobalCommandBar } from "@/components/global-command-bar"
-import { Search, Command } from "lucide-react"
+import { Search } from "lucide-react"
 import { projects } from '@/lib/utils/dummy-data'
 
 interface BreadcrumbItem {
