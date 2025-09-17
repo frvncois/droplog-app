@@ -10,7 +10,6 @@ interface ProjectPageProps {
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-  // Await params in Next.js 15
   const { id } = await params;
   const project = getProjectById(id);
 
