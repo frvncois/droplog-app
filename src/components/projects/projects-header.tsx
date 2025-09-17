@@ -28,7 +28,6 @@ export function ProjectsHeader({ onProjectCreated }: ProjectsHeaderProps) {
     // Call the parent callback if provided
     onProjectCreated?.(projectData);
     
-    // You could also update a global state or make an API call here
     console.log('New project created:', newProject);
   };
 

@@ -8,7 +8,7 @@ import {
   FolderOpen, 
   Clock, 
   TrendingUp,
-  Users
+  Users,
 } from "lucide-react";
 import { Project, projects as defaultProjects } from "@/lib/utils/dummy-data";
 
@@ -74,7 +74,9 @@ export function ProjectsStats({ projects = defaultProjects }: ProjectsStatsProps
               <CardTitle className="text-sm font-medium">
                 {stat.title}
               </CardTitle>
-              <Icon className="h-4 w-4" />
+              <div className="p-2 rounded-md bg-secondary">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">

@@ -1,10 +1,44 @@
 "use client";
 
 import * as React from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+  VisibilityState,
+} from "@tanstack/react-table";
+import { 
+  MoreVertical,
+  Eye,
+  Search,
+  Filter,
+  SortAsc,
+  Grid,
+  List,
+  Plus,
+  CheckSquare,
+  Edit,
+  Copy,
+  Trash2,
+  Clock,
+  Flag,
+  User,
+  Target,
+  AlertTriangle,
+  TrendingUp,
+  Calendar,
+  MessageCircle,
+  ArrowRight,
+  Circle,
+  FolderOpen
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,298 +48,917 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, MoreHorizontal, Eye, CheckSquare, Trash2, Edit, Copy, Plus, ExternalLink } from "lucide-react";
-import { Task, tasks, getProjectById, getTeamMemberById } from "@/lib/utils/dummy-data";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  Task,
+  tasks,
+  getProjectById,
+  getTeamMemberById,
+  projects
+} from "@/lib/utils/dummy-data";
 import { format } from "date-fns";
+import { formatRelativeTime } from "@/lib/utils";
 import { TaskSheetModal } from "@/components/modals/task-sheet-modal";
+import { TaskEditModal } from "@/components/modals/task-edit-modal";
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case "completed": return "bg-green-100 text-green-800";
-    case "in_progress": return "bg-blue-100 text-blue-800";
-    case "todo": return "bg-gray-100 text-gray-800";
-    default: return "bg-gray-100 text-gray-800";
+  const colors: Record<string, string> = {
+    completed: "bg-green-100 text-green-800",
+    in_progress: "bg-blue-100 text-blue-800",
+    todo: "bg-gray-100 text-gray-800",
+    cancelled: "bg-red-100 text-red-800"
+  };
+  return colors[status] || "bg-gray-100 text-gray-800";
+};
+
+const getPriorityConfig = (priority: string) => {
+  switch (priority) {
+    case "urgent": 
+      return { 
+        bg: "bg-red-50 border-red-200"
+      };
+    case "high": 
+      return { 
+        bg: "bg-orange-50 border-orange-200"
+      };
+    case "medium": 
+      return { 
+        bg: "bg-amber-50 border-amber-200"
+      };
+    case "low": 
+      return { 
+        bg: "bg-emerald-50 border-emerald-200"
+      };
+    default: 
+      return { 
+        bg: "bg-slate-50 border-slate-200"
+      };
   }
 };
 
-const getPriorityColor = (priority: string) => {
+const getPriorityIcon = (priority: string) => {
   switch (priority) {
-    case "urgent": return "bg-red-500 text-white";
-    case "high": return "bg-orange-500 text-white";
-    case "medium": return "bg-yellow-500 text-white";
-    case "low": return "bg-green-500 text-white";
-    default: return "bg-gray-500 text-white";
+    case "urgent":
+      return <Flag className="h-4 w-4 text-red-500" />;
+    case "high":
+      return <Flag className="h-4 w-4 text-orange-500" />;
+    case "medium":
+      return <Flag className="h-4 w-4 text-yellow-500" />;
+    case "low":
+      return <Flag className="h-4 w-4 text-green-500" />;
+    default:
+      return <Flag className="h-4 w-4 text-gray-500" />;
   }
 };
+
+// Status filter options
+const statusOptions = [
+  { value: "all", label: "All Status" },
+  { value: "todo", label: "To Do" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+// Priority filter options
+const priorityOptions = [
+  { value: "all", label: "All Priority" },
+  { value: "urgent", label: "Urgent" },
+  { value: "high", label: "High" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
+];
+
+// Sort options
+const sortOptions = [
+  { value: "updatedAt", label: "Last Updated" },
+  { value: "createdAt", label: "Created Date" },
+  { value: "title", label: "Title A-Z" },
+  { value: "priority", label: "Priority" },
+  { value: "dueDate", label: "Due Date" },
+];
 
 export function TasksDataTable() {
-  const [selectedTask, setSelectedTask] = React.useState<Task | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState("");
+  // Get all tasks
+  const [data, setData] = React.useState(() => tasks);
+
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [priorityFilter, setPriorityFilter] = React.useState("all");
+  const [assigneeFilter, setAssigneeFilter] = React.useState("all");
   const [projectFilter, setProjectFilter] = React.useState("all");
+  const [sortBy, setSortBy] = React.useState("updatedAt");
+  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
-  // Get all tasks for current user (this would normally filter by current user ID)
-  const allTasks = tasks;
+  // Modal states
+  const [selectedTask, setSelectedTask] = React.useState<Task | null>(null);
+  const [isTaskSheetOpen, setIsTaskSheetOpen] = React.useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [editingTask, setEditingTask] = React.useState<Task | null>(null);
 
-  // Get unique projects for filter dropdown
-  const uniqueProjects = React.useMemo(() => {
-    const projectIds = [...new Set(allTasks.map(task => task.projectId))];
-    return projectIds.map(id => getProjectById(id)).filter((project): project is NonNullable<typeof project> => project !== null && project !== undefined);
-  }, [allTasks]);
-
-  const filteredTasks = allTasks.filter((task) => {
-    const matchesStatus = statusFilter === "all" || task.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
-    const matchesProject = projectFilter === "all" || task.projectId === projectFilter;
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesPriority && matchesProject && matchesSearch;
-  });
-
+  // Function to open task sheet modal
   const openTaskSheet = (task: Task) => {
     setSelectedTask(task);
-    setIsSheetOpen(true);
+    setIsTaskSheetOpen(true);
   };
 
+  // Function to open edit modal
+  const openEditModal = (task: Task) => {
+    setEditingTask(task);
+    setIsEditModalOpen(true);
+  };
+
+  // Function to handle task status change
+  const handleStatusChange = (task: Task, newStatus: "todo" | "in_progress" | "completed") => {
+    const updatedTask: Task = {
+      ...task,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => prev.map(t => t.id === task.id ? updatedTask : t));
+    console.log(`Task "${task.title}" status changed to:`, newStatus);
+  };
+
+  // Function to handle task creation
+  const handleCreateTask = (newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newTask: Task = {
+      ...newTaskData,
+      id: `t${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => [newTask, ...prev]);
+    console.log('Created new task:', newTask);
+  };
+
+  // Function to handle task update
+  const handleUpdateTask = (updatedTask: Task) => {
+    setData(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    console.log('Updated task:', updatedTask);
+  };
+
+  // Function to handle task deletion
+  const handleDeleteTask = (task: Task) => {
+    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
+      setData(prev => prev.filter(t => t.id !== task.id));
+      console.log('Deleted task:', task.title);
+    }
+  };
+
+  // Function to handle task duplication
+  const handleDuplicateTask = (task: Task) => {
+    const duplicatedTask: Task = {
+      ...task,
+      id: `t${Date.now()}`,
+      title: `${task.title} (Copy)`,
+      status: "todo",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => [duplicatedTask, ...prev]);
+    console.log('Duplicated task:', duplicatedTask);
+  };
+
+  // Get unique assignees for filter
+  const uniqueAssignees = React.useMemo(() => {
+    const assignees = data
+      .map(task => task.assignedTo)
+      .filter((assignee): assignee is string => assignee !== undefined)
+      .filter((assignee, index, array) => array.indexOf(assignee) === index);
+    
+    return assignees.map(assigneeId => {
+      const member = getTeamMemberById(assigneeId);
+      return member ? { value: assigneeId, label: member.name } : null;
+    }).filter((item): item is { value: string; label: string } => item !== null);
+  }, [data]);
+
+  // Get unique projects for filter
+  const uniqueProjects = React.useMemo(() => {
+    const projectIds = [...new Set(data.map(task => task.projectId))];
+    return projectIds.map(id => {
+      const project = getProjectById(id);
+      return project ? { value: id, label: project.title } : null;
+    }).filter((item): item is { value: string; label: string } => item !== null);
+  }, [data]);
+
+  // Filter and sort tasks
+  const filteredAndSortedTasks = React.useMemo(() => {
+    let filtered = data;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(task =>
+        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(task => task.status === statusFilter);
+    }
+
+    // Apply priority filter
+    if (priorityFilter !== "all") {
+      filtered = filtered.filter(task => task.priority === priorityFilter);
+    }
+
+    // Apply assignee filter
+    if (assigneeFilter !== "all") {
+      filtered = filtered.filter(task => task.assignedTo === assigneeFilter);
+    }
+
+    // Apply project filter
+    if (projectFilter !== "all") {
+      filtered = filtered.filter(task => task.projectId === projectFilter);
+    }
+
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "createdAt":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "updatedAt":
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        case "priority":
+          const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+          return (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) - 
+                 (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
+        case "dueDate":
+          const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+          const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+          return aDate - bDate;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [data, searchTerm, statusFilter, priorityFilter, assigneeFilter, projectFilter, sortBy]);
+
+  const taskColumns: ColumnDef<Task>[] = [
+    {
+      accessorKey: "priority",
+      header: () => '',
+      cell: ({ row }) => {
+        const priority = row.getValue("priority") as string;
+        return (
+        <div className={`p-2 rounded-md flex flex-col items-center ${getPriorityConfig(priority).bg}`}>
+            {getPriorityIcon(priority)}
+          </div>
+        );
+      },
+      size: 50,
+    },
+    {
+      accessorKey: "title",
+      header: "Task",
+      cell: ({ row }) => {
+        const task = row.original;
+        
+        return (
+          <div className="flex flex-col p-2">
+            <Button 
+              variant="link" 
+              className="p-0 h-auto font-medium hover:text-primary transition-colors cursor-pointer text-left justify-start"
+              onClick={() => openTaskSheet(task)}
+            >
+              {task.title}
+            </Button>
+            <div className="text-xs text-muted-foreground line-clamp-1">
+              {task.description || "No description"}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "projectId",
+      header: "Project",
+      cell: ({ row }) => {
+        const projectId = row.getValue("projectId") as string;
+        const project = getProjectById(projectId);
+        
+        return (
+          <div className="flex flex-col">
+            {project ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-medium">{project.title}</span>
+                </div>
+              </>
+            ) : (
+              <span className="text-muted-foreground text-sm">Unknown Project</span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        return (
+          <Badge className={getStatusColor(status)}>
+            {status.replace("_", " ")}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "comments",
+      header: "Comments",
+      cell: ({ row }) => {
+        const task = row.original;
+        const commentsCount = task.comments?.length || 0;
+        
+        // For demo purposes, let's say there's a new comment if the task was updated in the last day
+        const hasNewComment = new Date(task.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+        
+        return (
+          <Button 
+            variant="ghost" 
+            size="xs"
+            className="flex items-center gap-1 hover:bg-muted"
+            onClick={() => openTaskSheet(task)}
+          >
+            <MessageCircle className="h-3 w-3" />
+            <p className="text-xs">{commentsCount} replies</p>
+            {hasNewComment && commentsCount > 0 && (
+              <Badge variant="destructive" className="text-xs px-1">
+                new
+              </Badge>
+            )}
+          </Button>
+        );
+      },
+    },
+    {
+      accessorKey: "assignedTo",
+      header: "Assignee",
+      cell: ({ row }) => {
+        const assignedTo = row.getValue("assignedTo") as string | undefined;
+        
+        if (!assignedTo) {
+          return <div className="text-muted-foreground">Unassigned</div>;
+        }
+        
+        const member = getTeamMemberById(assignedTo);
+        if (!member) {
+          return <div className="text-muted-foreground">Unknown</div>;
+        }
+        
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6 border border-background">
+              <AvatarImage src={member.avatarUrl} />
+              <AvatarFallback className="text-xs">
+                {member.name.split(" ").map(n => n[0]).join("")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <div className="text-xs">{member.name}</div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      cell: ({ row }) => {
+        const task = row.original;
+        const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        const today = new Date();
+
+        return (
+          <div className="flex flex-col">
+            <div className="flex items-center space-x-1">
+              <Clock className="h-3 w-3" />
+              <span className="text-xs">
+                {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "updatedAt",
+      header: "Last updated",
+      cell: ({ row }) => {
+        const updatedAt = row.getValue("updatedAt") as string;
+        
+        return (
+          <div className="flex flex-col">
+            <div className="text-xs">{formatRelativeTime(updatedAt)}</div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const task = row.original;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => openTaskSheet(task)}>
+                <Eye className="h-4 w-4" />
+                Task details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openEditModal(task)}>
+                <Edit className="h-4 w-4" />
+                Edit task
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {task.status !== "completed" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(task, "completed")}>
+                  <CheckSquare className="h-4 w-4" />
+                  Mark completed
+                </DropdownMenuItem>
+              )}
+              {task.status !== "in_progress" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(task, "in_progress")}>
+                  <ArrowRight className="h-4 w-4" />
+                  Mark in progress
+                </DropdownMenuItem>
+              )}
+              {task.status !== "todo" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(task, "todo")}>
+                  <Circle className="h-4 w-4" />
+                  Mark to do
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleDuplicateTask(task)}>
+                <Copy className="h-4 w-4" />
+                Duplicate task
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteTask(task)}>
+                <Trash2 className="h-4 w-4 text-red-500" />
+                Delete task
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+
+  const table = useReactTable({
+    data: filteredAndSortedTasks,
+    columns: taskColumns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    getRowId: (row) => row.id,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+    },
+  });
+
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-4">
+    <div className="w-full flex flex-col gap-4">
+
+      {/* Filters and Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search tasks..."
-            className="max-w-sm"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
           />
+        </div>
 
+        {/* Filters */}
+        <div className="flex items-center gap-4">
+          {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by status" />
+            <SelectTrigger className="w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="todo">To Do</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
-              {uniqueProjects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.title}
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
 
-        <div className="flex gap-2">
-          <Button onClick={() => console.log('Quick add task clicked')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Quick add task
-          </Button>
-          <Button onClick={() => console.log('Open in editor clicked')}>
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Open in editor
-          </Button>
+          {/* Priority Filter */}
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Flag className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {priorityOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Project Filter */}
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-[180px]">
+              <FolderOpen className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="All Projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              {uniqueProjects.map((project) => (
+                <SelectItem key={project.value} value={project.value}>
+                  {project.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Assignee Filter */}
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <User className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="All Assignees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Assignees</SelectItem>
+              {uniqueAssignees.map((assignee) => (
+                <SelectItem key={assignee.value} value={assignee.value}>
+                  {assignee.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Sort */}
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[200px]">
+              <SortAsc className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* View Mode Toggle */}
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="rounded-r-none"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Results Summary */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div>
-          Showing {filteredTasks.length} of {allTasks.length} tasks
+      
+      {/* Conditional rendering based on view mode */}
+      {viewMode === 'list' ? (
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader className="bg-muted sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-muted/50"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={taskColumns.length}
+                    className="h-24 text-center"
+                  >
+                    No tasks found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
-
-      {/* Tasks Table */}
-      <div className="overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Task</TableHead>
-              <TableHead>Project</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Assigned To</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map((task) => {
-                const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-                const today = new Date();
-                const isOverdue = dueDate && dueDate < today && task.status !== "completed";
-                const isDueSoon = dueDate && dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !isOverdue && task.status !== "completed";
-                const project = getProjectById(task.projectId);
-                const assignee = task.assignedTo ? getTeamMemberById(task.assignedTo) : null;
-
-                return (
-                  <TableRow key={task.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex flex-col space-y-1">
-                        <Button variant="link" className="p-0 justify-start font-medium" onClick={() => openTaskSheet(task)}>
-                          {task.title}
-                        </Button>
-                        {task.description && (
-                          <div className="text-xs text-muted-foreground line-clamp-1">
-                            {task.description}
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAndSortedTasks.length > 0 ? (
+            filteredAndSortedTasks.map((task) => {
+              const assignee = task.assignedTo ? getTeamMemberById(task.assignedTo) : null;
+              const project = getProjectById(task.projectId);
+              const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+              const today = new Date();
+              const isOverdue = dueDate && dueDate < today && task.status !== "completed";
+              const isDueSoon = dueDate && dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !isOverdue && task.status !== "completed";
+              const commentsCount = task.comments?.length || 0;
+              const hasNewComment = new Date(task.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+              
+              return (
+                <Card key={task.id} className="group justify-between hover:shadow-sm transition-all duration-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className={`p-2 rounded-md ${getPriorityConfig(task.priority).bg}`}>
+                              {getPriorityIcon(task.priority)}
+                            </div>
+                            <Button 
+                              variant="link" 
+                              className="p-0 h-auto text-left justify-start"
+                              onClick={() => openTaskSheet(task)}
+                            >
+                              <CardTitle className="text-lg hover:text-primary transition-colors">
+                                {task.title}
+                              </CardTitle>
+                            </Button>
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {project ? (
-                        <div className="flex flex-col space-y-1">
-                          <span className="text-sm font-medium">{project.title}</span>
-                          <Badge variant="outline" className="w-fit text-xs">
-                            {project.status}
-                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openTaskSheet(task)}>
+                                <Eye className="h-4 w-4" />
+                                Task details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditModal(task)}>
+                                <Edit className="h-4 w-4" />
+                                Edit task
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {task.status !== "completed" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(task, "completed")}>
+                                  <CheckSquare className="h-4 w-4" />
+                                  Mark completed
+                                </DropdownMenuItem>
+                              )}
+                              {task.status !== "in_progress" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(task, "in_progress")}>
+                                  <ArrowRight className="h-4 w-4" />
+                                  Mark in progress
+                                </DropdownMenuItem>
+                              )}
+                              {task.status !== "todo" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(task, "todo")}>
+                                  <Circle className="h-4 w-4" />
+                                  Mark to do
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDuplicateTask(task)}>
+                                <Copy className="h-4 w-4" />
+                                Duplicate task
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteTask(task)}>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Unknown Project</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(task.status)}>
-                        {task.status.replace("_", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`text-xs ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {assignee ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                            {assignee.name.split(" ").map(n => n[0]).join("")}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">{assignee.name}</span>
-                            <span className="text-xs text-muted-foreground">{assignee.role}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Unassigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell className={isOverdue ? "text-red-600" : isDueSoon ? "text-orange-600" : ""}>
-                      {dueDate ? (
-                        <div className="flex flex-col space-y-1">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-3 w-3" />
-                            <span className="text-sm">{format(dueDate, "MMM d, yyyy")}</span>
-                          </div>
+                        <div className="mt-2 flex items-center gap-2">
                           {isOverdue && (
-                            <Badge variant="destructive" className="text-xs w-fit">
+                            <Badge variant="destructive" className="text-xs">
                               Overdue
                             </Badge>
                           )}
                           {isDueSoon && !isOverdue && (
-                            <Badge variant="outline" className="text-xs w-fit text-orange-600">
+                            <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
                               Due Soon
                             </Badge>
                           )}
+                          <Badge className={getStatusColor(task.status)}>
+                            {task.status.replace("_", " ")}
+                          </Badge>
                         </div>
-                      ) : (
-                        "No due date"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openTaskSheet(task)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => console.log('Open in editor:', task.title)}>
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openTaskSheet(task)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View in editor
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => console.log('Edit task:', task.title)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit task
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => console.log('Mark as completed:', task.title)}>
-                              <CheckSquare className="mr-2 h-4 w-4" />
-                              {task.status === "completed" ? "Mark as incomplete" : "Mark as completed"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => console.log('Duplicate task:', task.title)}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Duplicate task
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-red-600" 
-                              onClick={() => console.log('Delete task:', task.title)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete task
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <p className="text-sm text-muted-foreground mt-6 line-clamp-2">
+                          {task.description || "No description"}
+                        </p>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="text-muted-foreground">No tasks found</div>
-                    <div className="text-sm text-muted-foreground">
-                      Try adjusting your filters or create a new task
                     </div>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex flex-col justify-between gap-2">
+                      {/* Project Info */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                          <div className="text-sm">
+                            {project ? project.title : "Unknown Project"}
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          <Button 
+                            variant="ghost" 
+                            size="xs"
+                            className="flex items-center space-x-1 hover:bg-muted p-1 h-auto"
+                            onClick={() => openTaskSheet(task)}
+                          >
+                            <MessageCircle className="h-3 w-3" />
+                            <span className="text-xs">{commentsCount}</span>
+                            {hasNewComment && commentsCount > 0 && (
+                              <Badge variant="destructive" className="text-xs px-1 ml-1">
+                                new
+                              </Badge>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Due Date */}
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div className="text-sm">
+                          Task due on {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
+                        </div>
+                      </div>
+
+                      {/* Meta Information */}
+                      <div className="space-y-2 border-t pt-3">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                          <div className="flex items-center gap-2">
+                            {assignee ? (
+                              <div className="flex items-center space-x-2">
+                                <Avatar className="h-6 w-6 border border-background">
+                                  <AvatarImage src={assignee.avatarUrl} />
+                                  <AvatarFallback className="text-xs">
+                                    {assignee.name.split(" ").map(n => n[0]).join("")}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="text-sm text-muted-foreground">
+                                  {assignee.name}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Unassigned</div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="text-muted-foreground">
+                              {formatRelativeTime(task.updatedAt)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Open Task Button */}
+                      <Button 
+                        variant="default"
+                        className="w-full" 
+                        onClick={() => openTaskSheet(task)}
+                      >
+                        View Task
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="col-span-full text-sm flex items-center border rounded-xl justify-center h-50 bg-card text-muted-foreground">
+              <p>No tasks found.</p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="text-muted-foreground flex-1 text-sm">
+          Showing {table.getRowModel().rows.length} of {filteredAndSortedTasks.length} tasks.
+        </div>
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       {/* Task Sheet Modal */}
       <TaskSheetModal
         task={selectedTask}
-        open={isSheetOpen}
-        onOpenChange={setIsSheetOpen}
+        open={isTaskSheetOpen}
+        onOpenChange={setIsTaskSheetOpen}
+      />
+
+      {/* Task Edit Modal */}
+      <TaskEditModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        task={editingTask}
+        onUpdateTask={handleUpdateTask}
       />
     </div>
   );

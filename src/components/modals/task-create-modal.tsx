@@ -14,14 +14,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { 
   Calendar, 
   Flag, 
   User, 
   X,
-  Plus
+  Plus,
+  FolderOpen
 } from "lucide-react";
-import { Task, team, getTeamMemberById } from "@/lib/utils/dummy-data";
+import { Task, team, projects, getTeamMemberById, getProjectById } from "@/lib/utils/dummy-data";
 
 interface TaskCreateModalProps {
   open: boolean;
@@ -33,6 +35,7 @@ interface TaskCreateModalProps {
 interface FormData {
   title: string;
   description: string;
+  projectId: string;
   status: "todo" | "in_progress" | "completed";
   priority: "urgent" | "high" | "medium" | "low";
   assignedTo?: string;
@@ -90,19 +93,37 @@ const getPriorityConfig = (priority: string) => {
 
 export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }: TaskCreateModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const isGlobalTaskCreation = !projectId || projectId === "";
+  
   const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
+    projectId: projectId || "",
     status: "todo",
     priority: "medium",
     assignedTo: undefined,
     dueDate: undefined,
   });
 
+  // Reset form when modal opens/closes or projectId changes
+  React.useEffect(() => {
+    if (open) {
+      setFormData({
+        title: "",
+        description: "",
+        projectId: projectId || "",
+        status: "todo",
+        priority: "medium",
+        assignedTo: undefined,
+        dueDate: undefined,
+      });
+    }
+  }, [open, projectId]);
+
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value === "" ? undefined : value
+      [field]: value === "" ? undefined : value === "unassigned" ? undefined : value
     }));
   };
 
@@ -110,6 +131,7 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
     setFormData({
       title: "",
       description: "",
+      projectId: projectId || "",
       status: "todo",
       priority: "medium",
       assignedTo: undefined,
@@ -124,6 +146,11 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
       return;
     }
 
+    // Validate project selection for global task creation
+    if (isGlobalTaskCreation && !formData.projectId) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -131,7 +158,7 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'> = {
-        projectId,
+        projectId: formData.projectId,
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
         status: formData.status,
@@ -155,6 +182,7 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
   };
 
   const selectedAssignee = formData.assignedTo ? getTeamMemberById(formData.assignedTo) : null;
+  const selectedProject = formData.projectId ? getProjectById(formData.projectId) : null;
   const priorityConfig = getPriorityConfig(formData.priority);
 
   return (
@@ -172,7 +200,10 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
                 </DialogTitle>
               </div>
               <p className="text-sm text-muted-foreground">
-                Add a new task to track progress and assign to team members
+                {isGlobalTaskCreation 
+                  ? "Add a new task and assign it to a project"
+                  : "Add a new task to track progress and assign to team members"
+                }
               </p>
             </div>
             <Button 
@@ -187,6 +218,54 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Project Selection - Only show for global task creation */}
+          {isGlobalTaskCreation && (
+            <div className="space-y-2">
+              <Label>Project *</Label>
+              <Select 
+                value={formData.projectId} 
+                onValueChange={(value) => handleInputChange('projectId', value)}
+                required
+              >
+                <SelectTrigger>
+                  <div className="flex items-center gap-2">
+                    {selectedProject ? (
+                      <>
+                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedProject.title}</span>
+                      </>
+                    ) : (
+                      <>
+                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Select a project...</span>
+                      </>
+                    )}
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex flex-col text-left">
+                          <span className="text-sm">{project.title}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {project.status}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {project.tasksCount} tasks
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Task Title *</Label>
@@ -263,8 +342,13 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
                 <div className="flex items-center gap-2">
                   {selectedAssignee ? (
                     <>
-
-                      <SelectValue />
+                      <Avatar className="h-4 w-4">
+                        <AvatarImage src={selectedAssignee.avatarUrl} />
+                        <AvatarFallback className="text-xs">
+                          {selectedAssignee.name.split(" ").map(n => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{selectedAssignee.name}</span>
                     </>
                   ) : (
                     <>
@@ -274,7 +358,7 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
                   )}
                 </div>
               </SelectTrigger>
-              <SelectContent >
+              <SelectContent>
                 <SelectItem value="unassigned">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
@@ -328,7 +412,11 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
             </Button>
             <Button 
               type="submit" 
-              disabled={!formData.title.trim() || isLoading}
+              disabled={
+                !formData.title.trim() || 
+                (isGlobalTaskCreation && !formData.projectId) || 
+                isLoading
+              }
               className="flex-1"
             >
               {isLoading ? 'Creating...' : 'Create Task'}
