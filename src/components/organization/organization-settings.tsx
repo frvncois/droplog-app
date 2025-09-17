@@ -1,241 +1,219 @@
-'use client'
+// components/organization/organization-settings.tsx
 
-import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
-  Building2, 
-  Globe, 
-  Shield, 
-  Key, 
-  Database, 
-  Trash2, 
+  Settings,
+  Building2,
+  Shield,
+  Bell,
+  Users,
+  Key,
+  Globe,
+  Palette,
+  Database,
   AlertTriangle,
   Upload,
+  Download,
+  Trash2,
+  Copy,
   Eye,
   EyeOff,
-  Copy,
-  Download,
-  RotateCcw,
-  Settings,
-  Users,
-  Lock,
-  Mail,
-  Phone,
-  MapPin
-} from 'lucide-react'
+  Plus,
+  X
+} from "lucide-react";
 
-// Organization settings interface
-interface OrganizationSettings {
-  general: {
-    name: string
-    description: string
-    website: string
-    logo: string
-    industry: string
-    size: string
-    location: string
-    timezone: string
-    language: string
-  }
-  security: {
-    twoFactorRequired: boolean
-    ssoEnabled: boolean
-    sessionTimeout: number
-    passwordPolicy: {
-      minLength: number
-      requireUppercase: boolean
-      requireLowercase: boolean
-      requireNumbers: boolean
-      requireSpecialChars: boolean
-    }
-    ipWhitelist: string[]
-  }
-  privacy: {
-    dataRetention: number
-    anonymizeData: boolean
-    allowAnalytics: boolean
-    shareUsageData: boolean
-  }
-  integrations: {
-    slackEnabled: boolean
-    emailNotifications: boolean
-    webhookUrl: string
-    apiKeys: Array<{
-      id: string
-      name: string
-      key: string
-      permissions: string[]
-      createdAt: string
-      lastUsed?: string
-    }>
-  }
+interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+  plan: string;
+  members: number;
+  projects: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Dummy organization settings
-const initialSettings: OrganizationSettings = {
+interface OrganizationSettingsProps {
+  organization: Organization;
+}
+
+// Mock settings data
+const organizationSettings = {
   general: {
-    name: 'Acme Corporation',
-    description: 'Leading provider of innovative project management solutions',
-    website: 'https://acme-corp.com',
-    logo: '/logos/acme-logo.png',
-    industry: 'Technology',
-    size: '11-50',
-    location: 'San Francisco, CA',
-    timezone: 'America/Los_Angeles',
-    language: 'en'
+    name: "Acme Corporation",
+    description: "Leading innovation in digital transformation and technology solutions",
+    website: "https://acme.com",
+    industry: "Technology",
+    size: "50-100 employees",
+    timezone: "America/New_York",
+    dateFormat: "MM/DD/YYYY",
+    currency: "USD"
   },
   security: {
     twoFactorRequired: true,
-    ssoEnabled: false,
-    sessionTimeout: 480,
     passwordPolicy: {
       minLength: 8,
       requireUppercase: true,
-      requireLowercase: true,
       requireNumbers: true,
-      requireSpecialChars: false
+      requireSymbols: true
     },
-    ipWhitelist: ['192.168.1.0/24', '10.0.0.0/8']
+    sessionTimeout: 480, // minutes
+    ipWhitelisting: false,
+    ssoEnabled: false,
+    auditLogging: true
   },
-  privacy: {
-    dataRetention: 365,
-    anonymizeData: true,
-    allowAnalytics: true,
-    shareUsageData: false
+  notifications: {
+    email: {
+      projectUpdates: true,
+      taskAssignments: true,
+      teamInvitations: true,
+      systemUpdates: true,
+      weeklyReports: false
+    },
+    slack: {
+      enabled: false,
+      webhookUrl: "",
+      channels: ["#general", "#projects"]
+    }
   },
   integrations: {
-    slackEnabled: true,
-    emailNotifications: true,
-    webhookUrl: 'https://hooks.acme-corp.com/droplog',
-    apiKeys: [
-      {
-        id: 'ak_1',
-        name: 'Production API',
-        key: 'sk_live_abc123...',
-        permissions: ['read', 'write'],
-        createdAt: '2025-08-15T10:00:00Z',
-        lastUsed: '2025-09-12T08:30:00Z'
-      },
-      {
-        id: 'ak_2',
-        name: 'Analytics Integration',
-        key: 'sk_test_def456...',
-        permissions: ['read'],
-        createdAt: '2025-09-01T14:20:00Z',
-        lastUsed: '2025-09-10T16:45:00Z'
+    googleWorkspace: { enabled: true, domain: "acme.com" },
+    microsoftOffice: { enabled: false },
+    slack: { enabled: false },
+    zapier: { enabled: true },
+    githubActions: { enabled: false }
+  },
+  branding: {
+    logo: "/logos/acme-logo.png",
+    primaryColor: "#3b82f6",
+    secondaryColor: "#64748b",
+    customDomain: "",
+    favicon: "/favicon.ico"
+  },
+  data: {
+    backupFrequency: "daily",
+    dataRetention: 365, // days
+    exportFormat: "json",
+    autoBackup: true
+  }
+};
+
+export function OrganizationSettings({ organization }: OrganizationSettingsProps) {
+  const [settings, setSettings] = useState(organizationSettings);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const handleSettingChange = (section: string, key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section as keyof typeof prev],
+        [key]: value
       }
-    ]
-  }
-}
+    }));
+    setHasUnsavedChanges(true);
+  };
 
-export function OrganizationSettings() {
-  const [settings, setSettings] = useState<OrganizationSettings>(initialSettings)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({})
-  const [newApiKeyDialogOpen, setNewApiKeyDialogOpen] = useState(false)
-
-  const updateGeneralSetting = (key: keyof OrganizationSettings['general'], value: string) => {
+  const handleNestedSettingChange = (section: string, subsection: string, key: string, value: any) => {
     setSettings(prev => ({
       ...prev,
-      general: { ...prev.general, [key]: value }
-    }))
-  }
+      [section]: {
+        ...prev[section as keyof typeof prev],
+        [subsection]: {
+          ...(prev[section as keyof typeof prev] as any)[subsection],
+          [key]: value
+        }
+      }
+    }));
+    setHasUnsavedChanges(true);
+  };
 
-  const updateSecuritySetting = (key: keyof OrganizationSettings['security'], value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      security: { ...prev.security, [key]: value }
-    }))
-  }
+  const handleSaveSettings = () => {
+    // Mock save functionality
+    console.log("Saving settings:", settings);
+    setHasUnsavedChanges(false);
+  };
 
-  const updatePrivacySetting = (key: keyof OrganizationSettings['privacy'], value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      privacy: { ...prev.privacy, [key]: value }
-    }))
-  }
+  const handleExportData = () => {
+    // Mock export functionality
+    console.log("Exporting organization data...");
+  };
 
-  const updateIntegrationSetting = (key: keyof OrganizationSettings['integrations'], value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      integrations: { ...prev.integrations, [key]: value }
-    }))
-  }
-
-  const toggleApiKeyVisibility = (keyId: string) => {
-    setShowApiKeys(prev => ({ ...prev, [keyId]: !prev[keyId] }))
-  }
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    // You could add a toast notification here
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
+  const handleDeleteOrganization = () => {
+    // Mock delete functionality
+    console.log("Deleting organization...");
+    setIsDeleteDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList>
+      {/* Save Banner */}
+      {hasUnsavedChanges && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                You have unsaved changes
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setHasUnsavedChanges(false)}>
+                Discard
+              </Button>
+              <Button size="sm" onClick={handleSaveSettings}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="danger">Danger Zone</TabsTrigger>
+          <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="data">Data</TabsTrigger>
         </TabsList>
 
+        {/* General Settings */}
         <TabsContent value="general" className="space-y-6">
-          {/* Organization Profile */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
-                Organization Profile
+                Organization Details
               </CardTitle>
-              <CardDescription>Basic information about your organization</CardDescription>
+              <CardDescription>
+                Basic information about your organization
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center gap-6">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={settings.general.logo} />
-                  <AvatarFallback className="text-lg">
-                    {settings.general.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                  <Button variant="outline" size="sm">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Logo
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Recommended: Square image, at least 200x200px
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="org-name">Organization Name</Label>
                   <Input
                     id="org-name"
                     value={settings.general.name}
-                    onChange={(e) => updateGeneralSetting('name', e.target.value)}
+                    onChange={(e) => handleSettingChange("general", "name", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -243,473 +221,550 @@ export function OrganizationSettings() {
                   <Input
                     id="org-website"
                     value={settings.general.website}
-                    onChange={(e) => updateGeneralSetting('website', e.target.value)}
-                    placeholder="https://your-website.com"
+                    onChange={(e) => handleSettingChange("general", "website", e.target.value)}
                   />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="org-description">Description</Label>
-                  <Textarea
-                    id="org-description"
-                    value={settings.general.description}
-                    onChange={(e) => updateGeneralSetting('description', e.target.value)}
-                    rows={3}
-                  />
-                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="org-description">Description</Label>
+                <Textarea
+                  id="org-description"
+                  value={settings.general.description}
+                  onChange={(e) => handleSettingChange("general", "description", e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="org-industry">Industry</Label>
-                  <Select value={settings.general.industry} onValueChange={(value) => updateGeneralSetting('industry', value)}>
+                  <Select value={settings.general.industry} onValueChange={(value) => handleSettingChange("general", "industry", value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Technology">Technology</SelectItem>
-                      <SelectItem value="Healthcare">Healthcare</SelectItem>
                       <SelectItem value="Finance">Finance</SelectItem>
+                      <SelectItem value="Healthcare">Healthcare</SelectItem>
                       <SelectItem value="Education">Education</SelectItem>
-                      <SelectItem value="Retail">Retail</SelectItem>
                       <SelectItem value="Manufacturing">Manufacturing</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="Retail">Retail</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="org-size">Organization Size</Label>
-                  <Select value={settings.general.size} onValueChange={(value) => updateGeneralSetting('size', value)}>
+                  <Select value={settings.general.size} onValueChange={(value) => handleSettingChange("general", "size", value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1-10">1-10 employees</SelectItem>
-                      <SelectItem value="11-50">11-50 employees</SelectItem>
-                      <SelectItem value="51-200">51-200 employees</SelectItem>
-                      <SelectItem value="201-500">201-500 employees</SelectItem>
-                      <SelectItem value="500+">500+ employees</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="org-location">Location</Label>
-                  <Input
-                    id="org-location"
-                    value={settings.general.location}
-                    onChange={(e) => updateGeneralSetting('location', e.target.value)}
-                    placeholder="City, Country"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="org-timezone">Timezone</Label>
-                  <Select value={settings.general.timezone} onValueChange={(value) => updateGeneralSetting('timezone', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="America/Los_Angeles">Pacific Time (US & Canada)</SelectItem>
-                      <SelectItem value="America/Denver">Mountain Time (US & Canada)</SelectItem>
-                      <SelectItem value="America/Chicago">Central Time (US & Canada)</SelectItem>
-                      <SelectItem value="America/New_York">Eastern Time (US & Canada)</SelectItem>
-                      <SelectItem value="Europe/London">London</SelectItem>
-                      <SelectItem value="Europe/Paris">Paris</SelectItem>
-                      <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+                      <SelectItem value="1-10 employees">1-10 employees</SelectItem>
+                      <SelectItem value="11-50 employees">11-50 employees</SelectItem>
+                      <SelectItem value="51-100 employees">51-100 employees</SelectItem>
+                      <SelectItem value="101-500 employees">101-500 employees</SelectItem>
+                      <SelectItem value="500+ employees">500+ employees</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <Button>Save Changes</Button>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="org-timezone">Timezone</Label>
+                  <Select value={settings.general.timezone} onValueChange={(value) => handleSettingChange("general", "timezone", value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="America/New_York">Eastern Time</SelectItem>
+                      <SelectItem value="America/Chicago">Central Time</SelectItem>
+                      <SelectItem value="America/Denver">Mountain Time</SelectItem>
+                      <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                      <SelectItem value="Europe/London">London</SelectItem>
+                      <SelectItem value="Europe/Paris">Paris</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="org-date-format">Date Format</Label>
+                  <Select value={settings.general.dateFormat} onValueChange={(value) => handleSettingChange("general", "dateFormat", value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="org-currency">Currency</Label>
+                  <Select value={settings.general.currency} onValueChange={(value) => handleSettingChange("general", "currency", value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="CAD">CAD (C$)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Security Settings */}
         <TabsContent value="security" className="space-y-6">
-          {/* Security Settings */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Security Settings
+                Security & Access
               </CardTitle>
-              <CardDescription>Configure security policies for your organization</CardDescription>
+              <CardDescription>
+                Configure security policies and access controls
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="two-factor">Require Two-Factor Authentication</Label>
-                    <p className="text-sm text-muted-foreground">Require all team members to enable 2FA</p>
-                  </div>
-                  <Switch
-                    id="two-factor"
-                    checked={settings.security.twoFactorRequired}
-                    onCheckedChange={(value) => updateSecuritySetting('twoFactorRequired', value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="sso">Single Sign-On (SSO)</Label>
-                    <p className="text-sm text-muted-foreground">Enable SSO authentication</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Enterprise</Badge>
-                    <Switch
-                      id="sso"
-                      checked={settings.security.ssoEnabled}
-                      onCheckedChange={(value) => updateSecuritySetting('ssoEnabled', value)}
-                      disabled
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
-                  <Input
-                    id="session-timeout"
-                    type="number"
-                    value={settings.security.sessionTimeout}
-                    onChange={(e) => updateSecuritySetting('sessionTimeout', parseInt(e.target.value))}
-                    className="w-40"
-                  />
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Two-Factor Authentication</Label>
                   <p className="text-sm text-muted-foreground">
-                    Users will be logged out after this period of inactivity
+                    Require 2FA for all organization members
                   </p>
                 </div>
+                <Switch
+                  checked={settings.security.twoFactorRequired}
+                  onCheckedChange={(checked) => handleSettingChange("security", "twoFactorRequired", checked)}
+                />
               </div>
-
-              <div className="border-t pt-6">
-                <h4 className="font-semibold mb-4">Password Policy</h4>
-                <div className="space-y-4">
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h4 className="font-medium">Password Policy</h4>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="min-length">Minimum Password Length</Label>
+                    <Label htmlFor="min-length">Minimum Length</Label>
                     <Input
                       id="min-length"
                       type="number"
                       value={settings.security.passwordPolicy.minLength}
-                      onChange={(e) => updateSecuritySetting('passwordPolicy', {
-                        ...settings.security.passwordPolicy,
-                        minLength: parseInt(e.target.value)
-                      })}
-                      className="w-40"
+                      onChange={(e) => handleNestedSettingChange("security", "passwordPolicy", "minLength", parseInt(e.target.value))}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="require-uppercase">Require Uppercase</Label>
-                      <Switch
-                        id="require-uppercase"
-                        checked={settings.security.passwordPolicy.requireUppercase}
-                        onCheckedChange={(value) => updateSecuritySetting('passwordPolicy', {
-                          ...settings.security.passwordPolicy,
-                          requireUppercase: value
-                        })}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="require-lowercase">Require Lowercase</Label>
-                      <Switch
-                        id="require-lowercase"
-                        checked={settings.security.passwordPolicy.requireLowercase}
-                        onCheckedChange={(value) => updateSecuritySetting('passwordPolicy', {
-                          ...settings.security.passwordPolicy,
-                          requireLowercase: value
-                        })}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="require-numbers">Require Numbers</Label>
-                      <Switch
-                        id="require-numbers"
-                        checked={settings.security.passwordPolicy.requireNumbers}
-                        onCheckedChange={(value) => updateSecuritySetting('passwordPolicy', {
-                          ...settings.security.passwordPolicy,
-                          requireNumbers: value
-                        })}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="require-special">Require Special Characters</Label>
-                      <Switch
-                        id="require-special"
-                        checked={settings.security.passwordPolicy.requireSpecialChars}
-                        onCheckedChange={(value) => updateSecuritySetting('passwordPolicy', {
-                          ...settings.security.passwordPolicy,
-                          requireSpecialChars: value
-                        })}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
+                    <Input
+                      id="session-timeout"
+                      type="number"
+                      value={settings.security.sessionTimeout}
+                      onChange={(e) => handleSettingChange("security", "sessionTimeout", parseInt(e.target.value))}
+                    />
                   </div>
                 </div>
-              </div>
-
-              <div className="border-t pt-6">
-                <h4 className="font-semibold mb-4">IP Whitelist</h4>
-                <div className="space-y-2">
-                  {settings.security.ipWhitelist.map((ip, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input value={ip} readOnly className="flex-1" />
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm">Add IP Range</Button>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button>Save Security Settings</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="privacy" className="space-y-6">
-          {/* Privacy Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Privacy & Data Management
-              </CardTitle>
-              <CardDescription>Control how your organization's data is handled</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="data-retention">Data Retention Period (days)</Label>
-                  <Input
-                    id="data-retention"
-                    type="number"
-                    value={settings.privacy.dataRetention}
-                    onChange={(e) => updatePrivacySetting('dataRetention', parseInt(e.target.value))}
-                    className="w-40"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    How long to keep deleted data before permanent removal
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="anonymize-data">Anonymize User Data</Label>
-                    <p className="text-sm text-muted-foreground">Remove personal identifiers from analytics</p>
-                  </div>
-                  <Switch
-                    id="anonymize-data"
-                    checked={settings.privacy.anonymizeData}
-                    onCheckedChange={(value) => updatePrivacySetting('anonymizeData', value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="allow-analytics">Allow Analytics</Label>
-                    <p className="text-sm text-muted-foreground">Enable usage analytics and insights</p>
-                  </div>
-                  <Switch
-                    id="allow-analytics"
-                    checked={settings.privacy.allowAnalytics}
-                    onCheckedChange={(value) => updatePrivacySetting('allowAnalytics', value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="share-usage">Share Usage Data</Label>
-                    <p className="text-sm text-muted-foreground">Help improve Droplog by sharing anonymous usage data</p>
-                  </div>
-                  <Switch
-                    id="share-usage"
-                    checked={settings.privacy.shareUsageData}
-                    onCheckedChange={(value) => updatePrivacySetting('shareUsageData', value)}
-                  />
-                </div>
-              </div>
-
-              <div className="border-t pt-6">
-                <h4 className="font-semibold mb-4">Data Export & Deletion</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Export Organization Data</p>
-                      <p className="text-sm text-muted-foreground">Download all your organization's data</p>
-                    </div>
-                    <Button variant="outline">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export Data
-                    </Button>
+                    <Label>Require Uppercase Letters</Label>
+                    <Switch
+                      checked={settings.security.passwordPolicy.requireUppercase}
+                      onCheckedChange={(checked) => handleNestedSettingChange("security", "passwordPolicy", "requireUppercase", checked)}
+                    />
                   </div>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Request Data Deletion</p>
-                      <p className="text-sm text-muted-foreground">Permanently delete all organization data</p>
-                    </div>
-                    <Button variant="outline" className="text-red-600 hover:text-red-700">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Request Deletion
-                    </Button>
+                    <Label>Require Numbers</Label>
+                    <Switch
+                      checked={settings.security.passwordPolicy.requireNumbers}
+                      onCheckedChange={(checked) => handleNestedSettingChange("security", "passwordPolicy", "requireNumbers", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Require Symbols</Label>
+                    <Switch
+                      checked={settings.security.passwordPolicy.requireSymbols}
+                      onCheckedChange={(checked) => handleNestedSettingChange("security", "passwordPolicy", "requireSymbols", checked)}
+                    />
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <Button>Save Privacy Settings</Button>
+              
+              <Separator />
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>IP Whitelisting</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Restrict access to specific IP addresses
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.ipWhitelisting}
+                    onCheckedChange={(checked) => handleSettingChange("security", "ipWhitelisting", checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Single Sign-On (SSO)</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable SAML/OAuth SSO integration
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.ssoEnabled}
+                    onCheckedChange={(checked) => handleSettingChange("security", "ssoEnabled", checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Audit Logging</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Track all user actions and changes
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.auditLogging}
+                    onCheckedChange={(checked) => handleSettingChange("security", "auditLogging", checked)}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="integrations" className="space-y-6">
-          {/* API Keys */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
-                API Keys
+                API Access
               </CardTitle>
-              <CardDescription>Manage API keys for external integrations</CardDescription>
+              <CardDescription>
+                Manage API keys for external integrations
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-end">
-                <Dialog open={newApiKeyDialogOpen} onOpenChange={setNewApiKeyDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>Create API Key</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New API Key</DialogTitle>
-                      <DialogDescription>Generate a new API key for integrations</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="api-name">Key Name</Label>
-                        <Input id="api-name" placeholder="Production API" />
-                      </div>
-                      <div>
-                        <Label>Permissions</Label>
-                        <div className="space-y-2 mt-2">
-                          <div className="flex items-center space-x-2">
-                            <input type="checkbox" id="read" />
-                            <Label htmlFor="read">Read</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input type="checkbox" id="write" />
-                            <Label htmlFor="write">Write</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input type="checkbox" id="delete" />
-                            <Label htmlFor="delete">Delete</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setNewApiKeyDialogOpen(false)}>Cancel</Button>
-                      <Button onClick={() => setNewApiKeyDialogOpen(false)}>Create Key</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Primary API Key</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {showApiKey ? "pk_live_1234567890abcdef..." : "pk_live_••••••••••••••••"}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Generate New API Key
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="space-y-3">
-                {settings.integrations.apiKeys.map((apiKey) => (
-                  <div key={apiKey.id} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{apiKey.name}</h4>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          {apiKey.permissions.join(', ')}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleApiKeyVisibility(apiKey.id)}
-                        >
-                          {showApiKeys[apiKey.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(apiKey.key)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="font-mono text-sm bg-muted p-2 rounded">
-                      {showApiKeys[apiKey.id] ? apiKey.key : '••••••••••••••••••••••••••••••••'}
-                    </div>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <span>Created: {formatDate(apiKey.createdAt)}</span>
-                      {apiKey.lastUsed && <span>Last used: {formatDate(apiKey.lastUsed)}</span>}
-                    </div>
+        {/* Notifications Settings */}
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Email Notifications
+              </CardTitle>
+              <CardDescription>
+                Configure when to send email notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(settings.notifications.email).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <Label className="capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                    </Label>
                   </div>
-                ))}
-              </div>
+                  <Switch
+                    checked={value as boolean}
+                    onCheckedChange={(checked) => handleNestedSettingChange("notifications", "email", key, checked)}
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
 
-          {/* Integrations */}
           <Card>
             <CardHeader>
-              <CardTitle>External Integrations</CardTitle>
-              <CardDescription>Connect with external services</CardDescription>
+              <CardTitle>Slack Integration</CardTitle>
+              <CardDescription>
+                Send notifications to your Slack workspace
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="slack-integration">Slack Integration</Label>
-                  <p className="text-sm text-muted-foreground">Send notifications to Slack channels</p>
-                </div>
+                <Label>Enable Slack Notifications</Label>
                 <Switch
-                  id="slack-integration"
-                  checked={settings.integrations.slackEnabled}
-                  onCheckedChange={(value) => updateIntegrationSetting('slackEnabled', value)}
+                  checked={settings.notifications.slack.enabled}
+                  onCheckedChange={(checked) => handleNestedSettingChange("notifications", "slack", "enabled", checked)}
                 />
               </div>
+              {settings.notifications.slack.enabled && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="slack-webhook">Webhook URL</Label>
+                    <Input
+                      id="slack-webhook"
+                      placeholder="https://hooks.slack.com/services/..."
+                      value={settings.notifications.slack.webhookUrl}
+                      onChange={(e) => handleNestedSettingChange("notifications", "slack", "webhookUrl", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Default Channels</Label>
+                    <div className="flex gap-2">
+                      {settings.notifications.slack.channels.map((channel, index) => (
+                        <Badge key={index} variant="secondary">
+                          {channel}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-1 ml-2"
+                            onClick={() => {
+                              const newChannels = settings.notifications.slack.channels.filter((_, i) => i !== index);
+                              handleNestedSettingChange("notifications", "slack", "channels", newChannels);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                      <Button variant="outline" size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Channel
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="email-notifications">Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Send email notifications for important events</p>
+        {/* Integrations Settings */}
+        <TabsContent value="integrations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                External Integrations
+              </CardTitle>
+              <CardDescription>
+                Connect with external services and tools
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(settings.integrations).map(([key, integration]) => (
+                <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                      <span className="text-sm font-medium capitalize">
+                        {key.slice(0, 2)}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium capitalize">
+                        {key.replace(/([A-Z])/g, ' $1')}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {(integration as any).domain && `Domain: ${(integration as any).domain}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={(integration as any).enabled ? "secondary" : "outline"}>
+                      {(integration as any).enabled ? "Connected" : "Disabled"}
+                    </Badge>
+                    <Button variant="outline" size="sm">
+                      {(integration as any).enabled ? "Configure" : "Connect"}
+                    </Button>
+                  </div>
                 </div>
-                <Switch
-                  id="email-notifications"
-                  checked={settings.integrations.emailNotifications}
-                  onCheckedChange={(value) => updateIntegrationSetting('emailNotifications', value)}
-                />
-              </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="space-y-2">
-                <Label htmlFor="webhook-url">Webhook URL</Label>
-                <Input
-                  id="webhook-url"
-                  value={settings.integrations.webhookUrl}
-                  onChange={(e) => updateIntegrationSetting('webhookUrl', e.target.value)}
-                  placeholder="https://hooks.your-service.com/webhook"
-                />
-                <p className="text-sm text-muted-foreground">
-                  Receive real-time notifications about organization events
-                </p>
-              </div>
+        {/* Branding Settings */}
+        <TabsContent value="branding" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Brand Customization
+              </CardTitle>
+              <CardDescription>
+                Customize the look and feel of your organization
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label>Organization Logo</Label>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Avatar className="h-16 w-16 rounded-lg">
+                      <AvatarImage src={settings.branding.logo} />
+                      <AvatarFallback>
+                        <Building2 className="h-8 w-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-2">
+                      <Button variant="outline" size="sm">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload New Logo
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        PNG, JPG up to 2MB. Recommended: 200x200px
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex justify-end">
-                <Button>Save Integration Settings</Button>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="primary-color">Primary Color</Label>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-10 h-10 rounded border"
+                        style={{ backgroundColor: settings.branding.primaryColor }}
+                      />
+                      <Input
+                        id="primary-color"
+                        value={settings.branding.primaryColor}
+                        onChange={(e) => handleSettingChange("branding", "primaryColor", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="secondary-color">Secondary Color</Label>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-10 h-10 rounded border"
+                        style={{ backgroundColor: settings.branding.secondaryColor }}
+                      />
+                      <Input
+                        id="secondary-color"
+                        value={settings.branding.secondaryColor}
+                        onChange={(e) => handleSettingChange("branding", "secondaryColor", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="custom-domain">Custom Domain</Label>
+                  <Input
+                    id="custom-domain"
+                    placeholder="your-org.droplog.com"
+                    value={settings.branding.customDomain}
+                    onChange={(e) => handleSettingChange("branding", "customDomain", e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Use your own domain for the organization workspace
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="danger" className="space-y-6">
+        {/* Data Settings */}
+        <TabsContent value="data" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Data Management
+              </CardTitle>
+              <CardDescription>
+                Manage your organization's data and backups
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="backup-frequency">Backup Frequency</Label>
+                    <Select 
+                      value={settings.data.backupFrequency} 
+                      onValueChange={(value) => handleSettingChange("data", "backupFrequency", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hourly">Hourly</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="data-retention">Data Retention (days)</Label>
+                    <Input
+                      id="data-retention"
+                      type="number"
+                      value={settings.data.dataRetention}
+                      onChange={(e) => handleSettingChange("data", "dataRetention", parseInt(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Automatic Backups</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically backup organization data
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.data.autoBackup}
+                    onCheckedChange={(checked) => handleSettingChange("data", "autoBackup", checked)}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Data Export & Import</h4>
+                <div className="flex gap-4">
+                  <Button variant="outline" onClick={handleExportData}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Organization Data
+                  </Button>
+                  <Button variant="outline">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import Data
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Export includes projects, tasks, team members, and settings. 
+                  Files and assets are not included in the export.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Danger Zone */}
           <Card className="border-red-200">
             <CardHeader>
@@ -718,90 +773,66 @@ export function OrganizationSettings() {
                 Danger Zone
               </CardTitle>
               <CardDescription>
-                Irreversible actions that will affect your entire organization
+                Irreversible and destructive actions
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent>
               <div className="space-y-4">
                 <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-red-800">Transfer Organization Ownership</h4>
-                      <p className="text-sm text-red-600">
-                        Transfer ownership to another team member
-                      </p>
-                    </div>
-                    <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-100">
-                      Transfer Ownership
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-red-800">Archive Organization</h4>
-                      <p className="text-sm text-red-600">
-                        Archive this organization and all its data (reversible)
-                      </p>
-                    </div>
-                    <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-100">
-                      Archive Organization
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-red-800">Delete Organization</h4>
-                      <p className="text-sm text-red-600">
-                        Permanently delete this organization and all its data
-                      </p>
-                    </div>
-                    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="destructive">
+                  <h4 className="font-medium text-red-800 mb-2">Delete Organization</h4>
+                  <p className="text-sm text-red-700 mb-4">
+                    Permanently delete this organization and all associated data. 
+                    This action cannot be undone.
+                  </p>
+                  <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Organization
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Delete Organization</DialogTitle>
+                        <DialogDescription>
+                          This will permanently delete "{organization.name}" and all associated data including:
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span>All projects and tasks</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span>All team members and permissions</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span>All files and assets</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span>All settings and configurations</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="delete-confirmation">
+                          Type "{organization.name}" to confirm:
+                        </Label>
+                        <Input id="delete-confirmation" placeholder={organization.name} />
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDeleteOrganization}>
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Delete Organization
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle className="text-red-600">Delete Organization</DialogTitle>
-                          <DialogDescription>
-                            This action cannot be undone. This will permanently delete your organization
-                            and remove all data associated with it.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="p-4 bg-red-50 border border-red-200 rounded">
-                            <h4 className="font-medium text-red-800 mb-2">This will delete:</h4>
-                            <ul className="text-sm text-red-600 space-y-1">
-                              <li>• All projects and tasks</li>
-                              <li>• All team members and their access</li>
-                              <li>• All files and assets</li>
-                              <li>• All billing information</li>
-                              <li>• All organization settings</li>
-                            </ul>
-                          </div>
-                          <div>
-                            <Label htmlFor="confirm-delete">
-                              Type <strong>{settings.general.name}</strong> to confirm
-                            </Label>
-                            <Input id="confirm-delete" placeholder={settings.general.name} />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button variant="destructive" onClick={() => setDeleteDialogOpen(false)}>
-                            I understand, delete this organization
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </CardContent>
@@ -809,5 +840,5 @@ export function OrganizationSettings() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

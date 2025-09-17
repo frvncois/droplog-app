@@ -56,6 +56,11 @@ const data = {
       icon: FolderOpen,
     },
     {
+      title: "Timeline",
+      url: "/app/timeline",
+      icon: FileImage,
+    },
+    {
       title: "Tasks",
       url: "/app/tasks",
       icon: CheckSquare,

@@ -1,17 +1,19 @@
-'use client'
+// components/organization/organization-team.tsx
 
-import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Users, 
   UserPlus, 
@@ -26,229 +28,300 @@ import {
   Trash2,
   Clock,
   MapPin,
-  Phone
-} from 'lucide-react'
+  Phone,
+  Send,
+  Copy,
+  Eye,
+  Settings
+} from "lucide-react";
 
-// Team member interface based on dummy data schema
+interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+  plan: string;
+  members: number;
+  projects: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface TeamMember {
-  id: string
-  name: string
-  email: string
-  role: 'owner' | 'admin' | 'member'
-  status: 'active' | 'pending' | 'inactive'
-  avatarUrl?: string
-  joinedAt: string
-  lastActive?: string
-  department?: string
-  location?: string
-  phone?: string
-  projects: string[]
+  id: string;
+  name: string;
+  email: string;
+  role: "owner" | "admin" | "member" | "viewer";
+  status: "active" | "pending" | "inactive";
+  avatarUrl?: string;
+  joinedAt: string;
+  lastActive?: string;
+  department?: string;
+  location?: string;
+  phone?: string;
+  projectsAssigned: number;
+  tasksCompleted: number;
+}
+
+interface OrganizationTeamProps {
+  organization: Organization;
 }
 
 // Dummy team data
 const teamMembers: TeamMember[] = [
   {
-    id: 'u1',
-    name: 'Alice Johnson',
-    email: 'alice@company.com',
-    role: 'owner',
-    status: 'active',
-    avatarUrl: '/avatars/alice.png',
-    joinedAt: '2024-01-15T09:00:00Z',
-    lastActive: '2 minutes ago',
-    department: 'Management',
-    location: 'San Francisco, CA',
-    phone: '+1 (555) 123-4567',
-    projects: ['p1', 'p2', 'p3']
+    id: "u1",
+    name: "Alice Johnson",
+    email: "alice@acme.com",
+    role: "owner",
+    status: "active",
+    avatarUrl: "/avatars/alice.png",
+    joinedAt: "2024-01-15T10:00:00Z",
+    lastActive: "2025-09-12T08:30:00Z",
+    department: "Engineering",
+    location: "San Francisco, CA",
+    phone: "+1 (555) 123-4567",
+    projectsAssigned: 5,
+    tasksCompleted: 47
   },
   {
-    id: 'u2',
-    name: 'Bob Smith',
-    email: 'bob@company.com',
-    role: 'admin',
-    status: 'active',
-    avatarUrl: '/avatars/bob.png',
-    joinedAt: '2024-02-01T10:00:00Z',
-    lastActive: '1 hour ago',
-    department: 'Engineering',
-    location: 'New York, NY',
-    phone: '+1 (555) 234-5678',
-    projects: ['p1', 'p4']
+    id: "u2",
+    name: "Bob Smith",
+    email: "bob@acme.com",
+    role: "admin",
+    status: "active",
+    avatarUrl: "/avatars/bob.png",
+    joinedAt: "2024-02-20T09:00:00Z",
+    lastActive: "2025-09-12T07:15:00Z",
+    department: "Design",
+    location: "New York, NY",
+    phone: "+1 (555) 234-5678",
+    projectsAssigned: 3,
+    tasksCompleted: 32
   },
   {
-    id: 'u3',
-    name: 'Carol Davis',
-    email: 'carol@company.com',
-    role: 'member',
-    status: 'active',
-    avatarUrl: '/avatars/carol.png',
-    joinedAt: '2024-02-15T11:00:00Z',
-    lastActive: '3 hours ago',
-    department: 'Design',
-    location: 'Los Angeles, CA',
-    phone: '+1 (555) 345-6789',
-    projects: ['p2', 'p3']
+    id: "u3",
+    name: "Carol Davis",
+    email: "carol@acme.com",
+    role: "member",
+    status: "active",
+    avatarUrl: "/avatars/carol.png",
+    joinedAt: "2024-03-10T11:30:00Z",
+    lastActive: "2025-09-11T16:45:00Z",
+    department: "Marketing",
+    location: "Austin, TX",
+    phone: "+1 (555) 345-6789",
+    projectsAssigned: 4,
+    tasksCompleted: 28
   },
   {
-    id: 'u4',
-    name: 'David Wilson',
-    email: 'david@company.com',
-    role: 'member',
-    status: 'pending',
-    joinedAt: '2024-03-01T12:00:00Z',
-    department: 'Marketing',
-    location: 'Chicago, IL',
-    projects: ['p4']
+    id: "u4",
+    name: "David Wilson",
+    email: "david@acme.com",
+    role: "member",
+    status: "active",
+    avatarUrl: "/avatars/david.png",
+    joinedAt: "2024-04-05T14:00:00Z",
+    lastActive: "2025-09-11T12:20:00Z",
+    department: "Engineering",
+    location: "Seattle, WA",
+    phone: "+1 (555) 456-7890",
+    projectsAssigned: 6,
+    tasksCompleted: 41
   },
   {
-    id: 'u5',
-    name: 'Emma Brown',
-    email: 'emma@company.com',
-    role: 'member',
-    status: 'inactive',
-    avatarUrl: '/avatars/emma.png',
-    joinedAt: '2024-01-20T08:00:00Z',
-    lastActive: '2 weeks ago',
-    department: 'Engineering',
-    location: 'Austin, TX',
-    projects: []
+    id: "u5",
+    name: "Emma Brown",
+    email: "emma@acme.com",
+    role: "member",
+    status: "pending",
+    avatarUrl: "/avatars/emma.png",
+    joinedAt: "2025-09-10T16:00:00Z",
+    lastActive: undefined,
+    department: "Product",
+    location: "Los Angeles, CA",
+    phone: "+1 (555) 567-8901",
+    projectsAssigned: 0,
+    tasksCompleted: 0
+  },
+  {
+    id: "u6",
+    name: "Frank Miller",
+    email: "frank@acme.com",
+    role: "viewer",
+    status: "inactive",
+    avatarUrl: "/avatars/frank.png",
+    joinedAt: "2024-01-20T10:00:00Z",
+    lastActive: "2025-08-15T14:30:00Z",
+    department: "Sales",
+    location: "Chicago, IL",
+    phone: "+1 (555) 678-9012",
+    projectsAssigned: 1,
+    tasksCompleted: 8
   }
-]
+];
 
-export function OrganizationTeam() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterRole, setFilterRole] = useState<string>('all')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
-  const [editMemberDialogOpen, setEditMemberDialogOpen] = useState(false)
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+const departments = ["Engineering", "Design", "Marketing", "Product", "Sales", "Operations"];
+const roles = [
+  { value: "owner", label: "Owner", description: "Full access to everything" },
+  { value: "admin", label: "Admin", description: "Manage team and projects" },
+  { value: "member", label: "Member", description: "Access to assigned projects" },
+  { value: "viewer", label: "Viewer", description: "Read-only access" }
+];
 
-  // Filter team members based on search and filters
-  const filteredMembers = teamMembers.filter(member => {
-    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (member.department?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+export function OrganizationTeam({ organization }: OrganizationTeamProps) {
+  const [members, setMembers] = useState<TeamMember[]>(teamMembers);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // Filter members based on search and filters
+  const filteredMembers = members.filter(member => {
+    const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         member.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === "all" || member.role === roleFilter;
+    const matchesDepartment = departmentFilter === "all" || member.department === departmentFilter;
+    const matchesStatus = statusFilter === "all" || member.status === statusFilter;
     
-    const matchesRole = filterRole === 'all' || member.role === filterRole
-    const matchesStatus = filterStatus === 'all' || member.status === filterStatus
-    
-    return matchesSearch && matchesRole && matchesStatus
-  })
+    return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
+  });
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'owner':
-        return <Crown className="h-4 w-4 text-yellow-500" />
-      case 'admin':
-        return <Shield className="h-4 w-4 text-blue-500" />
-      default:
-        return <User className="h-4 w-4 text-gray-500" />
+      case "owner": return <Crown className="h-4 w-4" />;
+      case "admin": return <Shield className="h-4 w-4" />;
+      default: return <User className="h-4 w-4" />;
     }
-  }
+  };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'owner':
-        return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Owner</Badge>
-      case 'admin':
-        return <Badge variant="default" className="bg-blue-100 text-blue-800">Admin</Badge>
-      default:
-        return <Badge variant="secondary">Member</Badge>
+      case "owner": return "default";
+      case "admin": return "secondary";
+      default: return "outline";
     }
-  }
+  };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'active':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
-      case 'pending':
-        return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Pending</Badge>
-      case 'inactive':
-        return <Badge variant="secondary">Inactive</Badge>
-      default:
-        return <Badge variant="secondary">{status}</Badge>
+      case "active": return "secondary";
+      case "pending": return "outline";
+      case "inactive": return "destructive";
+      default: return "outline";
     }
-  }
+  };
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  }
+  const formatLastActive = (dateString: string | undefined) => {
+    if (!dateString) return "Never";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return "Just now";
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+    return date.toLocaleDateString();
+  };
 
-  const handleEditMember = (member: TeamMember) => {
-    setSelectedMember(member)
-    setEditMemberDialogOpen(true)
-  }
+  const handleInviteMember = (inviteData: any) => {
+    // Mock invite functionality
+    console.log("Inviting member:", inviteData);
+    setIsInviteDialogOpen(false);
+  };
+
+  const handleEditMember = (memberData: any) => {
+    // Mock edit functionality
+    setMembers(prev => prev.map(member => 
+      member.id === selectedMember?.id ? { ...member, ...memberData } : member
+    ));
+    setIsEditDialogOpen(false);
+    setSelectedMember(null);
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    setMembers(prev => prev.filter(member => member.id !== memberId));
+  };
 
   return (
     <div className="space-y-6">
-      {/* Team Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Team Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Members</p>
-                <p className="text-2xl font-bold">{teamMembers.length}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{members.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {members.filter(m => m.status === "active").length} active
+            </p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Shield className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Members</p>
-                <p className="text-2xl font-bold">{teamMembers.filter(m => m.status === 'active').length}</p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Invites</CardTitle>
+            <Mail className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {members.filter(m => m.status === "pending").length}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting response
+            </p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Invites</p>
-                <p className="text-2xl font-bold">{teamMembers.filter(m => m.status === 'pending').length}</p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Departments</CardTitle>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {new Set(members.map(m => m.department).filter(Boolean)).size}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Across organization
+            </p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Crown className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Administrators</p>
-                <p className="text-2xl font-bold">{teamMembers.filter(m => m.role === 'admin' || m.role === 'owner').length}</p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Tasks</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.round(members.reduce((acc, m) => acc + m.tasksCompleted, 0) / members.length)}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Per member
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search and Filters */}
+      {/* Team Management */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Team Members</CardTitle>
-              <CardDescription>Manage team members, roles, and permissions</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Team Members
+              </CardTitle>
+              <CardDescription>
+                Manage your organization's team members and their permissions
+              </CardDescription>
             </div>
-            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <UserPlus className="h-4 w-4 mr-2" />
@@ -258,65 +331,90 @@ export function OrganizationTeam() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Invite Team Member</DialogTitle>
-                  <DialogDescription>Send an invitation to join your organization</DialogDescription>
+                  <DialogDescription>
+                    Send an invitation to join your organization
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" placeholder="colleague@company.com" />
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email Address</Label>
+                    <Input id="invite-email" placeholder="colleague@company.com" />
                   </div>
-                  <div>
-                    <Label htmlFor="role">Role</Label>
-                    <Select defaultValue="member">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-role">Role</Label>
+                    <Select>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="admin">Administrator</SelectItem>
+                        {roles.filter(r => r.value !== "owner").map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            <div className="flex items-center gap-2">
+                              {getRoleIcon(role.value)}
+                              <div>
+                                <div className="font-medium">{role.label}</div>
+                                <div className="text-xs text-muted-foreground">{role.description}</div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="message">Personal Message (Optional)</Label>
-                    <Textarea id="message" placeholder="Welcome to our team!" />
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-department">Department</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept} value={dept.toLowerCase()}>
+                            {dept}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-message">Personal Message (Optional)</Label>
+                    <Textarea 
+                      id="invite-message" 
+                      placeholder="Add a personal message to the invitation..."
+                      rows={3}
+                    />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={() => setInviteDialogOpen(false)}>Send Invitation</Button>
+                  <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => handleInviteMember({})}>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Invite
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search members..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+        <CardContent>
+          {/* Filters and Search */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search members..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
             </div>
-            <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-40">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="owner">Owner</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="member">Member</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-40">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Status" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -325,19 +423,42 @@ export function OrganizationTeam() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="owner">Owner</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="viewer">Viewer</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Team Members Table */}
+          {/* Members Table */}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Member</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Department</TableHead>
-                <TableHead>Last Active</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Projects</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
+                <TableHead>Last Active</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -345,9 +466,11 @@ export function OrganizationTeam() {
                 <TableRow key={member.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
+                      <Avatar>
                         <AvatarImage src={member.avatarUrl} />
-                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                        <AvatarFallback>
+                          {member.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium">{member.name}</div>
@@ -356,35 +479,29 @@ export function OrganizationTeam() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <Badge variant={getRoleBadgeVariant(member.role) as any} className="flex items-center gap-1 w-fit">
                       {getRoleIcon(member.role)}
-                      {getRoleBadge(member.role)}
-                    </div>
+                      {member.role}
+                    </Badge>
                   </TableCell>
-                  <TableCell>{getStatusBadge(member.status)}</TableCell>
+                  <TableCell>
+                    <span className="text-sm">{member.department || "—"}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusBadgeVariant(member.status) as any}>
+                      {member.status}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {member.department || 'Not specified'}
+                      <div>{member.projectsAssigned} assigned</div>
+                      <div className="text-muted-foreground">{member.tasksCompleted} tasks done</div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-muted-foreground">
-                      {member.lastActive || 'Never'}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      {member.projects.slice(0, 2).map((projectId, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          Project {projectId.slice(-1)}
-                        </Badge>
-                      ))}
-                      {member.projects.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{member.projects.length - 2}
-                        </Badge>
-                      )}
-                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {formatLastActive(member.lastActive)}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -396,19 +513,31 @@ export function OrganizationTeam() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleEditMember(member)}>
-                          <Edit className="h-4 w-4 mr-2" />
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedMember(member);
+                          setIsEditDialogOpen(true);
+                        }}>
+                          <Edit className="mr-2 h-4 w-4" />
                           Edit Member
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Send Message
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy Email
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove Member
-                        </DropdownMenuItem>
+                        {member.role !== "owner" && (
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => handleRemoveMember(member.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Remove Member
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -416,63 +545,84 @@ export function OrganizationTeam() {
               ))}
             </TableBody>
           </Table>
+
+          {filteredMembers.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No members found matching your criteria.
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Edit Member Dialog */}
-      <Dialog open={editMemberDialogOpen} onOpenChange={setEditMemberDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Team Member</DialogTitle>
-            <DialogDescription>Update member information and permissions</DialogDescription>
+            <DialogDescription>
+              Update member information and permissions
+            </DialogDescription>
           </DialogHeader>
           {selectedMember && (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={selectedMember.avatarUrl} />
-                  <AvatarFallback>{getInitials(selectedMember.name)}</AvatarFallback>
+                  <AvatarFallback>
+                    {selectedMember.name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">{selectedMember.name}</h3>
+                  <h4 className="font-medium">{selectedMember.name}</h4>
                   <p className="text-sm text-muted-foreground">{selectedMember.email}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="member-role">Role</Label>
-                  <Select defaultValue={selectedMember.role}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="owner">Owner</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="member-department">Department</Label>
-                  <Input defaultValue={selectedMember.department} />
-                </div>
-                <div>
-                  <Label htmlFor="member-location">Location</Label>
-                  <Input defaultValue={selectedMember.location} />
-                </div>
-                <div>
-                  <Label htmlFor="member-phone">Phone</Label>
-                  <Input defaultValue={selectedMember.phone} />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Role</Label>
+                <Select defaultValue={selectedMember.role}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.filter(r => r.value !== "owner" || selectedMember.role === "owner").map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        <div className="flex items-center gap-2">
+                          {getRoleIcon(role.value)}
+                          <div>
+                            <div className="font-medium">{role.label}</div>
+                            <div className="text-xs text-muted-foreground">{role.description}</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-department">Department</Label>
+                <Select defaultValue={selectedMember.department}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditMemberDialogOpen(false)}>Cancel</Button>
-            <Button onClick={() => setEditMemberDialogOpen(false)}>Save Changes</Button>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => handleEditMember({})}>
+              Save Changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

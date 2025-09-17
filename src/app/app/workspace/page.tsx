@@ -1,114 +1,73 @@
-import { WorkspaceOverview } from "@/components/workspace/workspace-overview";
-import { TasksPreview } from "@/components/workspace/tasks-preview";
-import { ProjectsPreview } from "@/components/workspace/projects-preview";
-import { ActivityFeed } from "@/components/workspace/activity-feed";
+// app/workspace/page.tsx
 
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+"use client";
+
+import { WorkspaceStats } from "@/components/workspace/workspace-stats";
+import { WorkspaceTasks } from "@/components/workspace/workspace-tasks";
+import { WorkspaceTimeline } from "@/components/workspace/workspace-timeline";
+import { WorkspaceActivity } from "@/components/workspace/workspace-activity";
+import { WorkspaceProjects } from "@/components/workspace/workspace-projects";
+import { WorkspaceCta } from "@/components/workspace/workspace-cta";
+import { Button } from '@/components/ui/button';
 import { 
-  Plug,
-  Bell,
-  Users,
   Plus,
   Settings,
-} from 'lucide-react'
+  Bell,
+  Search
+} from 'lucide-react';
 
 export default function WorkspacePage() {
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 animate-fadeIn">
       {/* Page Header */}
       <div className="flex items-start justify-between">
-          <div className="space-y-0">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-3xl font-semibold tracking-tight">Welcome back!</h1>
-            </div>
-            <p className="text-muted-foreground text-sm max-w-2xl">
-             Here's what's happening with your projects today.
-            </p>
+        <div className="space-y-1">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-3xl font-semibold tracking-tight">Welcome back!</h1>
           </div>
-
-        <div className="space-y-0">
-          <div className="flex items-center space-x-2">
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="default" size="sm">
-                <Plus className="h-4 w-4" />
-                Quick add
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Plug className="mr-2 h-4 w-4" />
-                New project
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
-                Add task
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
-                Set event
-              </DropdownMenuItem>
-                            <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
-                Create content
-              </DropdownMenuItem>
-                            <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
-                Add asset
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Account settings</DropdownMenuLabel>
-              <DropdownMenuSeparator/>
-              <DropdownMenuItem>
-                <Plug className="mr-2 h-4 w-4" />
-                Integrations
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
-                Authorizations
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <p className="text-muted-foreground text-sm max-w-2xl">
+            Here's what's happening with your projects today.
+          </p>
         </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Search className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+          <Button variant="outline" size="sm">
+            <Bell className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm">
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
         </div>
       </div>
 
-      {/* Overview Stats */}
-      <WorkspaceOverview />
-
+      {/* Stats Overview */}
+      <WorkspaceStats />
+      
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Tasks and Projects */}
-        <div className="lg:col-span-2 space-y-8">
-          <TasksPreview />
-          <ProjectsPreview />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Tasks and Timeline */}
+        <div className="lg:col-span-2 space-y-6">
+          <WorkspaceTasks />
+          <WorkspaceTimeline />
         </div>
-
-        {/* Right Column - Activity Feed */}
-        <div className="lg:col-span-1">
-          <ActivityFeed />
+        
+        {/* Right Column - Activity and CTA */}
+        <div className="space-y-6">
+          <WorkspaceActivity />
+          <WorkspaceCta />
         </div>
       </div>
+      
+      {/* Projects Overview */}
+      <WorkspaceProjects />
     </div>
   );
 }
