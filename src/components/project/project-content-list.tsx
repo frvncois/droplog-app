@@ -14,29 +14,8 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
-  Row,
 } from "@tanstack/react-table";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  UniqueIdentifier,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { 
-  Plus,
   MoreVertical,
   Eye,
   Search,
@@ -44,7 +23,7 @@ import {
   SortAsc,
   Grid,
   List,
-  GripVertical,
+  Plus,
   Edit,
   Copy,
   Trash2,
@@ -55,6 +34,11 @@ import {
   Clock,
   Wand2,
   Languages,
+  TrendingUp,
+  Target,
+  Mail,
+  Share2,
+  Globe,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -92,13 +76,14 @@ import {
   getTeamMemberById 
 } from "@/lib/utils/dummy-data";
 import { formatRelativeTime } from "@/lib/utils";
+import { ContentCreateModal } from "../modals/content-create-modal";
+import { ContentSheetModal } from "../modals/content-sheet-modal";
+import { ContentEditModal } from "../modals/content-edit-modal";
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "approved":
       return "bg-green-100 text-green-800";
-    case "approved":
-      return "bg-blue-100 text-blue-800";
     case "pending":
       return "bg-yellow-100 text-yellow-800";
     case "draft":
@@ -108,6 +93,22 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const getTypeIcon = (type: string) => {
+  switch (type) {
+    case "blog_post":
+      return <FileText className="h-4 w-4 text-purple-500" />;
+    case "email":
+      return <Mail className="h-4 w-4 text-blue-500" />;
+    case "social":
+      return <Share2 className="h-4 w-4 text-pink-500" />;
+    case "page":
+      return <Globe className="h-4 w-4 text-green-500" />;
+    case "other":
+      return <FileText className="h-4 w-4 text-gray-500" />;
+    default:
+      return <FileText className="h-4 w-4 text-gray-500" />;
+  }
+};
 
 const getTypeColor = (type: string) => {
   switch (type) {
@@ -150,51 +151,8 @@ const sortOptions = [
   { value: "createdAt", label: "Created Date" },
   { value: "title", label: "Title A-Z" },
   { value: "status", label: "Status" },
+  { value: "wordCount", label: "Word Count" },
 ];
-
-// Drag handle component following Shadcn pattern
-function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({
-    id,
-  });
-
-  return (
-    <div
-      {...attributes}
-      {...listeners}
-      className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1"
-    >
-      <GripVertical className="h-3 w-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </div>
-  );
-}
-
-// Draggable row component following Shadcn pattern
-function DraggableRow({ row }: { row: Row<Content> }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  });
-
-  return (
-    <TableRow
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 hover:bg-muted/50"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id}>
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-}
 
 interface ProjectContentListProps {
   project: Project;
@@ -217,7 +175,6 @@ export function ProjectContentList({ project, content: externalContent }: Projec
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
   
   // Filter states
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -227,31 +184,80 @@ export function ProjectContentList({ project, content: externalContent }: Projec
   const [sortBy, setSortBy] = React.useState("updatedAt");
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
-  // Drag and drop setup
-  const sortableId = React.useId();
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // Modal states
+  const [selectedContent, setSelectedContent] = React.useState<Content | null>(null);
+  const [isContentSheetOpen, setIsContentSheetOpen] = React.useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [editingContent, setEditingContent] = React.useState<Content | null>(null);
 
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
-  );
+  // Function to open content sheet modal
+  const openContentSheet = (content: Content) => {
+    setSelectedContent(content);
+    setIsContentSheetOpen(true);
+    console.log('Opening content sheet for:', content.title);
+  };
 
-  // Handle drag end
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
-      });
+  // Function to open edit modal
+  const openEditModal = (content: Content) => {
+    setEditingContent(content);
+    setIsEditModalOpen(true);
+    console.log('Opening edit modal for:', content.title);
+  };
+
+  // Function to handle content status change
+  const handleStatusChange = (content: Content, newStatus: "draft" | "pending" | "approved") => {
+    const updatedContent: Content = {
+      ...content,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => prev.map(c => c.id === content.id ? updatedContent : c));
+    console.log(`Content "${content.title}" status changed to:`, newStatus);
+  };
+
+  // Function to handle content creation
+  const handleCreateContent = (newContentData: Omit<Content, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newContent: Content = {
+      ...newContentData,
+      id: `c${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => [newContent, ...prev]);
+    console.log('Created new content:', newContent);
+  };
+
+  // Function to handle content update
+  const handleUpdateContent = (updatedContent: Content) => {
+    setData(prev => prev.map(c => c.id === updatedContent.id ? updatedContent : c));
+    console.log('Updated content:', updatedContent);
+  };
+
+  // Function to handle content deletion
+  const handleDeleteContent = (content: Content) => {
+    if (confirm(`Are you sure you want to delete "${content.title}"?`)) {
+      setData(prev => prev.filter(c => c.id !== content.id));
+      console.log('Deleted content:', content.title);
     }
-  }
+  };
+
+  // Function to handle content duplication
+  const handleDuplicateContent = (content: Content) => {
+    const duplicatedContent: Content = {
+      ...content,
+      id: `c${Date.now()}`,
+      title: `${content.title} (Copy)`,
+      status: "draft",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => [duplicatedContent, ...prev]);
+    console.log('Duplicated content:', duplicatedContent);
+  };
 
   // Get unique assignees for filter
   const uniqueAssignees = React.useMemo(() => {
@@ -264,6 +270,38 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       const member = getTeamMemberById(assigneeId);
       return member ? { value: assigneeId, label: member.name } : null;
     }).filter((item): item is { value: string; label: string } => item !== null);
+  }, [data]);
+
+  // Content statistics
+  const contentStats = React.useMemo(() => {
+    const totalContent = data.length;
+    const draftContent = data.filter(c => c.status === "draft");
+    const pendingContent = data.filter(c => c.status === "pending");
+    const approvedContent = data.filter(c => c.status === "approved");
+    
+    // Type counts
+    const blogPosts = data.filter(c => c.type === "blog_post");
+    const pages = data.filter(c => c.type === "page");
+    
+    // Recent analysis
+    const today = new Date();
+    const recentContent = data.filter(c => {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return new Date(c.updatedAt) > weekAgo;
+    });
+    
+    const approvalRate = totalContent > 0 ? Math.round((approvedContent.length / totalContent) * 100) : 0;
+    
+    return {
+      totalContent,
+      draftContent: draftContent.length,
+      pendingContent: pendingContent.length,
+      approvedContent: approvedContent.length,
+      blogPosts: blogPosts.length + pages.length,
+      recentContent: recentContent.length,
+      approvalRate
+    };
   }, [data]);
 
   // Filter and sort content
@@ -305,7 +343,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
         case "wordCount":
           return (b.wordCount || 0) - (a.wordCount || 0);
         case "status":
-          const statusOrder = { approved: 4, pending: 2, draft: 1 };
+          const statusOrder = { approved: 3, pending: 2, draft: 1 };
           return (statusOrder[b.status as keyof typeof statusOrder] || 0) - 
                  (statusOrder[a.status as keyof typeof statusOrder] || 0);
         default:
@@ -318,12 +356,17 @@ export function ProjectContentList({ project, content: externalContent }: Projec
 
   const contentColumns: ColumnDef<Content>[] = [
     {
-      id: "drag",
+      accessorKey: "type",
       header: () => null,
-      cell: ({ row }) => <DragHandle id={row.original.id} />,
-      enableSorting: false,
-      enableHiding: false,
-      size: 24,
+      cell: ({ row }) => {
+        const type = row.getValue("type") as string;
+        return (
+          <div className="p-2 rounded-md flex items-center justify-center bg-muted">
+            {getTypeIcon(type)}
+          </div>
+        );
+      },
+      size: 50,
     },
     {
       accessorKey: "title",
@@ -332,14 +375,16 @@ export function ProjectContentList({ project, content: externalContent }: Projec
         const content = row.original;
         
         return (
-          <div className="flex items-center space-x-3 p-2">
-            <div className="flex flex-col min-w-0">
-              <div className="font-medium hover:text-primary transition-colors cursor-pointer">
-                {content.title}
-              </div>
-              <div className="text-sm text-muted-foreground line-clamp-1">
-                {content.content ? `${content.content.slice(0, 60)}...` : "No content"}
-              </div>
+          <div className="flex flex-col p-2">
+            <Button 
+              variant="link" 
+              className="p-0 h-auto font-medium hover:text-primary transition-colors cursor-pointer text-left justify-start"
+              onClick={() => openContentSheet(content)}
+            >
+              {content.title}
+            </Button>
+            <div className="text-xs text-muted-foreground line-clamp-1">
+              {content.content ? `${content.content.slice(0, 60)}...` : "No content"}
             </div>
           </div>
         );
@@ -358,10 +403,10 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       },
     },
     {
-      accessorKey: "type",
+      accessorKey: "contentType",
       header: "Type",
       cell: ({ row }) => {
-        const type = row.getValue("type") as string;
+        const type = row.original.type;
         return (
           <Badge className={getTypeColor(type)}>
             {type.replace("_", " ")}
@@ -385,7 +430,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
         }
         
         return (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6 border border-background">
               <AvatarImage src={assignedTo.avatarUrl} />
               <AvatarFallback className="text-xs">
@@ -393,8 +438,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <div className="text-sm font-medium">{assignedTo.name}</div>
-              <div className="text-xs text-muted-foreground">{assignedTo.role}</div>
+              <div className="text-xs">{assignedTo.name}</div>
             </div>
           </div>
         );
@@ -408,7 +452,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
         
         return (
           <div className="flex flex-col">
-            <div>{formatRelativeTime(updatedAt)}</div>
+            <div className="text-xs">{formatRelativeTime(updatedAt)}</div>
           </div>
         );
       },
@@ -429,30 +473,51 @@ export function ProjectContentList({ project, content: externalContent }: Projec
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => console.log('View content:', content.title)}>
-                <Eye className="mr-2 h-4 w-4" />
-                View content
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => openContentSheet(content)}>
+                <Eye className="h-4 w-4" />
+                Content details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('Edit content:', content.title)}>
-                <Edit className="mr-2 h-4 w-4" />
+              <DropdownMenuItem onClick={() => openEditModal(content)}>
+                <Edit className="h-4 w-4" />
                 Edit content
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('Duplicate content:', content.title)}>
-                <Copy className="mr-2 h-4 w-4" />
-                Duplicate
-              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {content.status !== "approved" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(content, "approved")}>
+                  <Check className="h-4 w-4" />
+                  Mark approved
+                </DropdownMenuItem>
+              )}
+              {content.status !== "pending" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(content, "pending")}>
+                  <Clock className="h-4 w-4" />
+                  Mark pending
+                </DropdownMenuItem>
+              )}
+              {content.status !== "draft" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(content, "draft")}>
+                  <Edit className="h-4 w-4" />
+                  Mark draft
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => console.log('AI optimize:', content.title)}>
-                <Wand2 className="mr-2 h-4 w-4" />
+                <Wand2 className="h-4 w-4" />
                 AI optimize
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => console.log('Translate:', content.title)}>
-                <Languages className="mr-2 h-4 w-4" />
+                <Languages className="h-4 w-4" />
                 Translate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500" onClick={() => console.log('Delete content:', content.title)}>
-                <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+              <DropdownMenuItem onClick={() => handleDuplicateContent(content)}>
+                <Copy className="h-4 w-4" />
+                Duplicate content
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteContent(content)}>
+                <Trash2 className="h-4 w-4 text-red-500" />
                 Delete content
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -472,21 +537,13 @@ export function ProjectContentList({ project, content: externalContent }: Projec
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     getRowId: (row) => row.id,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
   });
-
-  // Content stats
-  const totalContent = data.length;
-  const draftCount = data.filter(c => c.status === "draft").length;
-  const pendingCount = data.filter(c => c.status === "pending").length;
-  const approvedCount = data.filter(c => c.status === "approved").length;
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -494,12 +551,9 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-medium tracking-tight">Content</h2>
-          <p className="text-muted-foreground text-sm">
-            Manage content and publications for {project.title}
-          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => console.log('Create content clicked')}>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Create Content
           </Button>
@@ -509,39 +563,59 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Content</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Content Progress</CardTitle>
+            <div className="p-2 rounded-md bg-secondary">
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalContent}</div>
+            <div className="text-2xl font-bold">{contentStats.approvalRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {contentStats.approvedContent} of {contentStats.totalContent} approved
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <div className="p-2 rounded-md bg-secondary">
+              <TrendingUp className="h-4 w-4 text-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{contentStats.pendingContent}</div>
+            <p className="text-xs text-muted-foreground">
+              {contentStats.draftContent} drafts
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Drafts</CardTitle>
-            <Edit className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Blog & Pages</CardTitle>
+            <div className="p-2 rounded-md bg-secondary"> 
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{draftCount}</div>
+            <div className="text-2xl font-bold">{contentStats.blogPosts}</div>
+            <p className="text-xs text-muted-foreground">
+              Published content
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Recent</CardTitle>
+            <div className="p-2 rounded-md bg-secondary"> 
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <Check className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{approvedCount}</div>
+            <div className="text-2xl font-bold">{contentStats.recentContent}</div>
+            <p className="text-xs text-muted-foreground">
+              This week
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -622,7 +696,6 @@ export function ProjectContentList({ project, content: externalContent }: Projec
             </SelectContent>
           </Select>
 
-
           {/* View Mode Toggle */}
           <div className="flex border rounded-md">
             <Button
@@ -644,75 +717,79 @@ export function ProjectContentList({ project, content: externalContent }: Projec
           </div>
         </div>
       </div>
-      
+
       {/* Conditional rendering based on view mode */}
       {viewMode === 'list' ? (
-        <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} colSpan={header.colSpan}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader className="bg-muted sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-muted/50"
                   >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
                     ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={contentColumns.length}
-                      className="h-24 text-center"
-                    >
-                      No content found.
-                    </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={contentColumns.length}
+                    className="h-24 text-center"
+                  >
+                    No content found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedContent.length > 0 ? (
             filteredAndSortedContent.map((content) => {
-              const assignedTo = content.assignedTo ? getTeamMemberById(content.assignedTo) : null;
+              const assignee = content.assignedTo ? getTeamMemberById(content.assignedTo) : null;
+              
               return (
-                <Card key={content.id} className="group justify-between hover:shadow-md transition-all duration-200">
+                <Card key={content.id} className="group justify-between hover:shadow-sm transition-all duration-200">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer line-clamp-1">
-                              {content.title}
-                            </CardTitle>
+                            <Button 
+                              variant="link" 
+                              className="p-0 h-auto text-left justify-start"
+                              onClick={() => openContentSheet(content)}
+                            >
+                              <CardTitle className="text-lg hover:text-primary transition-colors">
+                                {content.title}
+                              </CardTitle>
+                            </Button>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -720,35 +797,56 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => console.log('View content:', content.title)}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View content
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openContentSheet(content)}>
+                                <Eye className="h-4 w-4" />
+                                Content details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditModal(content)}>
+                                <Edit className="h-4 w-4" />
+                                Edit content
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {content.status !== "approved" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(content, "approved")}>
+                                  <Check className="h-4 w-4" />
+                                  Mark approved
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => console.log('Edit content:', content.title)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit content
+                              )}
+                              {content.status !== "pending" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(content, "pending")}>
+                                  <Clock className="h-4 w-4" />
+                                  Mark pending
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => console.log('Duplicate content:', content.title)}>
-                                  <Copy className="mr-2 h-4 w-4" />
-                                  Duplicate
+                              )}
+                              {content.status !== "draft" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(content, "draft")}>
+                                  <Edit className="h-4 w-4" />
+                                  Mark draft
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => console.log('AI optimize:', content.title)}>
-                                  <Wand2 className="mr-2 h-4 w-4" />
-                                  AI optimize
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => console.log('Translate:', content.title)}>
-                                  <Languages className="mr-2 h-4 w-4" />
-                                  Translate
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-500" onClick={() => console.log('Delete content:', content.title)}>
-                                  <Trash2 className="mr-2 h-4 w-4 text-red-500" />
-                                  Delete content
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => console.log('AI optimize:', content.title)}>
+                                <Wand2 className="h-4 w-4" />
+                                AI optimize
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => console.log('Translate:', content.title)}>
+                                <Languages className="h-4 w-4" />
+                                Translate
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDuplicateContent(content)}>
+                                <Copy className="h-4 w-4" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteContent(content)}>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
@@ -759,65 +857,68 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                             {content.type.replace("_", " ")}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        <p className="text-sm text-muted-foreground mt-6 line-clamp-2">
                           {content.content ? `${content.content.slice(0, 100)}...` : "No content"}
                         </p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      <div className="space-y-2 border-t pt-3">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                                      {assignedTo ? (
-                                        <div className="flex items-center space-x-2">
-                                          <Avatar className="h-6 w-6 border border-background">
-                                            <AvatarImage src={assignedTo.avatarUrl} />
-                                            <AvatarFallback className="text-xs">
-                                              {assignedTo.name.split(" ").map(n => n[0]).join("")}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <div className="text-sm text-muted-foreground">
-                                            {assignedTo.name}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="text-sm text-muted-foreground">Unassigned</div>
-                                      )}
+                    <div className="flex flex-col justify-between gap-2">
+                      {/* Word Count */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div className="text-sm text-muted-foreground">
+                            {content.wordCount ? `${content.wordCount} words` : "No word count"}
                           </div>
-            <div className="flex items-center space-x-1">
-              <Calendar className="h-3 w-3" />
-                <span>{formatRelativeTime(content.updatedAt)}</span>
-                </div>
-              </div>
-            </div>
-                      {/* Actions */}
-                      <div className="flex gap-2 pt-2">
-                        <Button 
-                          className="flex-1" 
-                          size="sm"
-                          onClick={() => console.log('View content:', content.title)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => console.log('Edit content:', content.title)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        </div>
                       </div>
+
+                      {/* Meta Information */}
+                      <div className="space-y-2 border-t pt-3">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                          <div className="flex items-center gap-2">
+                            {assignee ? (
+                              <div className="flex items-center space-x-2">
+                                <Avatar className="h-6 w-6 border border-background">
+                                  <AvatarImage src={assignee.avatarUrl} />
+                                  <AvatarFallback className="text-xs">
+                                    {assignee.name.split(" ").map(n => n[0]).join("")}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="text-sm text-muted-foreground">
+                                  {assignee.name}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Unassigned</div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="text-muted-foreground">
+                              {formatRelativeTime(content.updatedAt)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Open Content Button */}
+                      <Button 
+                        variant="default"
+                        className="w-full" 
+                        onClick={() => openContentSheet(content)}
+                      >
+                        View Content
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               );
             })
           ) : (
-            <div className="col-span-full flex items-center justify-center h-32 text-muted-foreground">
-              No content found.
+            <div className="col-span-full text-sm flex items-center border rounded-xl justify-center h-50 bg-card text-muted-foreground">
+              <p>No content found.</p>
             </div>
           )}
         </div>
@@ -825,8 +926,6 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} content item(s) selected.
           Showing {table.getRowModel().rows.length} of {filteredAndSortedContent.length} content items.
         </div>
         <div className="space-x-2">
@@ -848,6 +947,27 @@ export function ProjectContentList({ project, content: externalContent }: Projec
           </Button>
         </div>
       </div>
+
+
+      <ContentSheetModal
+        content={selectedContent}
+        open={isContentSheetOpen}
+        onOpenChange={setIsContentSheetOpen}
+      />
+
+      <ContentCreateModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        projectId={project.id}
+        onCreateContent={handleCreateContent}
+      />
+
+      <ContentEditModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        content={editingContent}
+        onUpdateContent={handleUpdateContent}
+      />
     </div>
   );
 }

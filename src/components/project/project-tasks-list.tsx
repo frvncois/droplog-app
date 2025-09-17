@@ -468,27 +468,16 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         const task = row.original;
         const dueDate = task.dueDate ? new Date(task.dueDate) : null;
         const today = new Date();
-        const isOverdue = dueDate && dueDate < today && task.status !== "completed";
-        const isDueSoon = dueDate && dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !isOverdue && task.status !== "completed";
+
         
         return (
           <div className="flex flex-col">
-            <div className={`flex items-center space-x-1 ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : ''}`}>
+            <div className="flex items-center space-x-1">
               <Clock className="h-3 w-3" />
               <span className="text-xs">
                 {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
               </span>
             </div>
-            {isOverdue && (
-              <Badge variant="destructive" className="text-xs mt-1 w-fit">
-                Overdue
-              </Badge>
-            )}
-            {isDueSoon && !isOverdue && (
-              <Badge variant="outline" className="text-xs mt-1 w-fit text-orange-600 border-orange-600">
-                Due Soon
-              </Badge>
-            )}
           </div>
         );
       },
@@ -917,7 +906,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <div className={`text-sm ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-muted-foreground'}`}>
+                        <div className="text-sm">
                           Task due on {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
                         </div>
                         </div>

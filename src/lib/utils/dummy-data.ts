@@ -52,6 +52,7 @@ export interface Content {
   assignedTo?: string;
   content?: string;
   wordCount?: number;
+  url?: string;
 }
 
 export interface TeamMember {
