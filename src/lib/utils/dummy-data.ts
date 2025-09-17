@@ -28,10 +28,12 @@ export interface Task {
 export interface Asset {
   id: string;
   projectId: string;
-  type: "image" | "video" | "pdf" | "document" | "other";
+  type: "image" | "video" | "pdf" | "document" | "audio" | "other";
   title: string;
-  filename: string;
-  fileSize: number;
+  filename?: string;
+  fileUrl?: string;
+  fileSize?: number;
+  description?: string;
   addedBy: string;
   assignedTo?: string;
   createdAt: string;

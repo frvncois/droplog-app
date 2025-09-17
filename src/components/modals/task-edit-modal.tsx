@@ -33,7 +33,7 @@ interface TaskEditModalProps {
 interface FormData {
   title: string;
   description: string;
-  status: "todo" | "in_progress" | "completed";
+  status: "todo" | "in_progress" | "completed" | "cancelled";
   priority: "urgent" | "high" | "medium" | "low";
   assignedTo?: string;
   dueDate?: string;
@@ -298,7 +298,7 @@ export function TaskEditModal({ open, onOpenChange, task, onUpdateTask }: TaskEd
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value="unassigned">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     Unassigned

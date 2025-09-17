@@ -891,6 +891,16 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
                           </DropdownMenu>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
+                        {isOverdue && (
+                          <Badge variant="destructive" className="text-xs">
+                            Overdue
+                          </Badge>
+                        )}
+                        {isDueSoon && !isOverdue && (
+                          <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
+                            Due Soon
+                          </Badge>
+                        )}
                           <Badge className={getStatusColor(task.status)}>
                             {task.status.replace("_", " ")}
                           </Badge>
@@ -910,16 +920,6 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
                         <div className={`text-sm ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-muted-foreground'}`}>
                           Task due on {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
                         </div>
-                        {isOverdue && (
-                          <Badge variant="destructive" className="text-xs">
-                            Overdue
-                          </Badge>
-                        )}
-                        {isDueSoon && !isOverdue && (
-                          <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
-                            Due Soon
-                          </Badge>
-                        )}
                         </div>
                       <div className="flex items-center">
                           <Button 

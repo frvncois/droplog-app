@@ -235,7 +235,6 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
               <Select value={formData.priority} onValueChange={(value) => handleInputChange('priority', value)}>
                 <SelectTrigger>
                   <div className="flex items-center gap-2">
-                    <Flag className={`h-3 w-3 ${priorityConfig.color}`} />
                     <SelectValue />
                   </div>
                 </SelectTrigger>
@@ -264,12 +263,7 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
                 <div className="flex items-center gap-2">
                   {selectedAssignee ? (
                     <>
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={selectedAssignee.avatarUrl} />
-                        <AvatarFallback className="text-xs">
-                          {selectedAssignee.name.split(" ").map(n => n[0]).join("")}
-                        </AvatarFallback>
-                      </Avatar>
+
                       <SelectValue />
                     </>
                   ) : (
@@ -280,8 +274,8 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
                   )}
                 </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">
+              <SelectContent >
+                <SelectItem value="unassigned">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     Unassigned
@@ -296,8 +290,8 @@ export function TaskCreateModal({ open, onOpenChange, projectId, onCreateTask }:
                           {member.name.split(" ").map(n => n[0]).join("")}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col">
-                        <span>{member.name}</span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs">{member.name}</span>
                         <span className="text-xs text-muted-foreground">{member.role}</span>
                       </div>
                     </div>
