@@ -245,21 +245,17 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         {/* Right Column */}
         <div className="space-y-6">
                     {/* Project Description */}
-          <Card>
-            <CardContent>
+
               <div className="flex flex-col gap-2">
-                <Button variant="default" size="lg">
+                <Button variant="default" size="xl">
+                  <Bot className="h-4 w-4" />
                   Open editor
                 </Button>
-                <Button variant="default" size="lg">
+                <Button variant="outline" size="xl">
+                  <Sparkles className="h-4 w-4" />
                   Analyze site
                 </Button>
-                <Button variant="default" size="lg">
-                  Summarize project
-                </Button>
               </div>
-            </CardContent>
-          </Card>
           {/* Project Description */}
 
 

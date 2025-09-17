@@ -215,7 +215,7 @@ function DraggableCard({ doc, onAction }: { doc: Documentation; onAction: (actio
   return (
     <Card 
       ref={setNodeRef}
-      className={`group hover:shadow-lg transition-all duration-200 ${isDragging ? 'opacity-50' : ''}`}
+      className={`group hover:shadow-sm transition-all duration-200 ${isDragging ? 'opacity-50' : ''}`}
       style={{
         transform: CSS.Transform.toString(transform),
         transition: transition,

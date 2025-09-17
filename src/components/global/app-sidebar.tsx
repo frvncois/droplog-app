@@ -21,6 +21,7 @@ import { NavProjects } from "@/components/global/nav-projects"
 import { NavUser } from "@/components/global/nav-user"
 import { NavOrganization } from "@/components/global/nav-organization"
 import { NavSecondary } from "@/components/global/nav-secondary"
+import { ThemeToggle } from "@/components/global/theme-toggle"
 import {
   Sidebar,
   SidebarContent,
@@ -82,9 +83,8 @@ const data = {
       icon: Plug,
     },
     {
-      title: "Settings",
-      url: "/app/settings",
-      icon: Settings,
+      title: "Theme",
+      component: <ThemeToggle />,
     },
   ],
   projects: getActiveProjects().slice(0, 5).map(project => ({

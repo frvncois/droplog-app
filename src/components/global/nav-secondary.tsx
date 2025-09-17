@@ -19,8 +19,9 @@ export function NavSecondary({
 }: {
   items: {
     title: string
-    url: string
-    icon: LucideIcon
+    url?: string
+    icon?: LucideIcon
+    component?: React.ReactNode
   }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const pathname = usePathname()
@@ -30,12 +31,22 @@ export function NavSecondary({
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
-            const isActive = pathname.startsWith(item.url)
+            // If a custom component exists, render it directly
+            if (item.component) {
+              return (
+                <SidebarMenuItem key={item.title}>
+                  {item.component}
+                </SidebarMenuItem>
+              )
+            }
+
+            const isActive = item.url ? pathname.startsWith(item.url) : false
+
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
-                  <Link href={item.url}>
-                    <item.icon />
+                  <Link href={item.url!}>
+                    {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>

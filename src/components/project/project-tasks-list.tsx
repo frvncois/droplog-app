@@ -1,5 +1,3 @@
-// components/projects/project-tasks-list.tsx
-
 "use client";
 
 import * as React from "react";
@@ -14,27 +12,7 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
-  Row,
 } from "@tanstack/react-table";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  UniqueIdentifier,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { 
   MoreVertical,
   Eye,
@@ -43,7 +21,6 @@ import {
   SortAsc,
   Grid,
   List,
-  GripVertical,
   Plus,
   ExternalLink,
   CheckSquare,
@@ -56,7 +33,11 @@ import {
   Target,
   AlertTriangle,
   TrendingUp,
-  Calendar
+  Calendar,
+  MessageCircle,
+  ArrowUp,
+  ArrowRight,
+  Circle
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -96,6 +77,8 @@ import {
 import { format } from "date-fns";
 import { formatRelativeTime } from "@/lib/utils";
 import { TaskSheetModal } from "@/components/modals/task-sheet-modal";
+import { TaskCreateModal } from "@/components/modals/task-create-modal";
+import { TaskEditModal } from "@/components/modals/task-edit-modal";
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
@@ -106,14 +89,44 @@ const getStatusColor = (status: string) => {
   return colors[status] || "bg-gray-100 text-gray-800";
 };
 
-const getPriorityColor = (priority: string) => {
-  const colors: Record<string, string> = {
-    urgent: "bg-red-500 text-white",
-    high: "bg-orange-500 text-white",
-    medium: "bg-yellow-500 text-white",
-    low: "bg-green-500 text-white"
-  };
-  return colors[priority] || "bg-gray-500 text-white";
+const getPriorityConfig = (priority: string) => {
+  switch (priority) {
+    case "urgent": 
+      return { 
+        bg: "bg-red-50 border-red-200"
+      };
+    case "high": 
+      return { 
+        bg: "bg-orange-50 border-orange-200"
+      };
+    case "medium": 
+      return { 
+        bg: "bg-amber-50 border-amber-200"
+      };
+    case "low": 
+      return { 
+        bg: "bg-emerald-50 border-emerald-200"
+      };
+    default: 
+      return { 
+        bg: "bg-slate-50 border-slate-200"
+      };
+  }
+};
+
+const getPriorityIcon = (priority: string) => {
+  switch (priority) {
+    case "urgent":
+      return <Flag className="h-4 w-4 text-red-500" />;
+    case "high":
+      return <Flag className="h-4 w-4 text-orange-500" />;
+    case "medium":
+      return <Flag className="h-4 w-4 text-yellow-500" />;
+    case "low":
+      return <Flag className="h-4 w-4 text-green-500" />;
+    default:
+      return <Flag className="h-4 w-4 text-gray-500" />;
+  }
 };
 
 // Status filter options
@@ -122,6 +135,7 @@ const statusOptions = [
   { value: "todo", label: "To Do" },
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 // Priority filter options
@@ -141,50 +155,6 @@ const sortOptions = [
   { value: "priority", label: "Priority" },
   { value: "dueDate", label: "Due Date" },
 ];
-
-// Drag handle component
-function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({
-    id,
-  });
-
-  return (
-    <div
-      {...attributes}
-      {...listeners}
-      className="flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1"
-    >
-      <GripVertical className="h-3 w-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </div>
-  );
-}
-
-// Draggable row component
-function DraggableRow({ row }: { row: Row<Task> }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  });
-
-  return (
-    <TableRow
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 hover:bg-muted/50"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id}>
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-}
 
 interface ProjectTasksListProps {
   project: Project;
@@ -216,40 +186,77 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
   const [sortBy, setSortBy] = React.useState("updatedAt");
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
-  // Task Sheet Modal state
+  // Modal states
   const [selectedTask, setSelectedTask] = React.useState<Task | null>(null);
   const [isTaskSheetOpen, setIsTaskSheetOpen] = React.useState(false);
-
-  // Drag and drop setup
-  const sortableId = React.useId();
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
-  );
-
-  // Handle drag end
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
-      });
-    }
-  }
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [editingTask, setEditingTask] = React.useState<Task | null>(null);
 
   // Function to open task sheet modal
   const openTaskSheet = (task: Task) => {
     setSelectedTask(task);
     setIsTaskSheetOpen(true);
+  };
+
+  // Function to open edit modal
+  const openEditModal = (task: Task) => {
+    setEditingTask(task);
+    setIsEditModalOpen(true);
+  };
+
+  // Function to handle task status change
+  const handleStatusChange = (task: Task, newStatus: "todo" | "in_progress" | "completed") => {
+    const updatedTask: Task = {
+      ...task,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => prev.map(t => t.id === task.id ? updatedTask : t));
+    console.log(`Task "${task.title}" status changed to:`, newStatus);
+  };
+
+  // Function to handle task creation
+  const handleCreateTask = (newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newTask: Task = {
+      ...newTaskData,
+      id: `t${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => [newTask, ...prev]);
+    console.log('Created new task:', newTask);
+  };
+
+  // Function to handle task update
+  const handleUpdateTask = (updatedTask: Task) => {
+    setData(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    console.log('Updated task:', updatedTask);
+  };
+
+  // Function to handle task deletion
+  const handleDeleteTask = (task: Task) => {
+    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
+      setData(prev => prev.filter(t => t.id !== task.id));
+      console.log('Deleted task:', task.title);
+    }
+  };
+
+  // Function to handle task duplication
+  const handleDuplicateTask = (task: Task) => {
+    const duplicatedTask: Task = {
+      ...task,
+      id: `t${Date.now()}`,
+      title: `${task.title} (Copy)`,
+      status: "todo",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setData(prev => [duplicatedTask, ...prev]);
+    console.log('Duplicated task:', duplicatedTask);
   };
 
   // Get unique assignees for filter
@@ -350,12 +357,17 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
 
   const taskColumns: ColumnDef<Task>[] = [
     {
-      id: "drag",
-      header: () => null,
-      cell: ({ row }) => <DragHandle id={row.original.id} />,
-      enableSorting: false,
-      enableHiding: false,
-      size: 24,
+      accessorKey: "priority",
+      header: () => '',
+      cell: ({ row }) => {
+        const priority = row.getValue("priority") as string;
+        return (
+        <div className={`p-2 rounded-md flex flex-col items-center ${getPriorityConfig(priority).bg}`}>
+            {getPriorityIcon(priority)}
+          </div>
+        );
+      },
+      size: 50,
     },
     {
       accessorKey: "title",
@@ -364,7 +376,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         const task = row.original;
         
         return (
-          <div className="flex flex-col space-y-0 p-2">
+          <div className="flex flex-col p-2">
             <Button 
               variant="link" 
               className="p-0 h-auto font-medium hover:text-primary transition-colors cursor-pointer text-left justify-start"
@@ -372,7 +384,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
             >
               {task.title}
             </Button>
-            <div className="text-sm text-muted-foreground line-clamp-1">
+            <div className="text-xs text-muted-foreground line-clamp-1">
               {task.description || "No description"}
             </div>
           </div>
@@ -392,15 +404,30 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       },
     },
     {
-      accessorKey: "priority",
-      header: "Priority",
+      accessorKey: "comments",
+      header: "Comments",
       cell: ({ row }) => {
-        const priority = row.getValue("priority") as string;
+        const task = row.original;
+        const commentsCount = task.comments?.length || 0;
+        
+        // For demo purposes, let's say there's a new comment if the task was updated in the last day
+        const hasNewComment = new Date(task.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+        
         return (
-          <Badge className={`text-xs ${getPriorityColor(priority)}`}>
-            <Flag className="h-3 w-3 mr-1" />
-            {priority}
-          </Badge>
+          <Button 
+            variant="ghost" 
+            size="xs"
+            className="flex items-center gap-1 hover:bg-muted"
+            onClick={() => openTaskSheet(task)}
+          >
+            <MessageCircle className="h-3 w-3" />
+            <p className="text-sx">{commentsCount} replies</p>
+            {hasNewComment && commentsCount > 0 && (
+              <Badge variant="destructive" className="text-xs px-1">
+                new
+              </Badge>
+            )}
+          </Button>
         );
       },
     },
@@ -420,7 +447,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         }
         
         return (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6 border border-background">
               <AvatarImage src={member.avatarUrl} />
               <AvatarFallback className="text-xs">
@@ -428,8 +455,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <div className="text-sm font-medium">{member.name}</div>
-              <div className="text-xs text-muted-foreground">{member.role}</div>
+              <div className="text-xs">{member.name}</div>
             </div>
           </div>
         );
@@ -449,7 +475,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
           <div className="flex flex-col">
             <div className={`flex items-center space-x-1 ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : ''}`}>
               <Clock className="h-3 w-3" />
-              <span className="text-sm">
+              <span className="text-xs">
                 {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
               </span>
             </div>
@@ -475,7 +501,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         
         return (
           <div className="flex flex-col">
-            <div>{formatRelativeTime(updatedAt)}</div>
+            <div className="text-xs">{formatRelativeTime(updatedAt)}</div>
           </div>
         );
       },
@@ -496,26 +522,42 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => openTaskSheet(task)}>
-                <Eye className="mr-2 h-4 w-4" />
+                <Eye className="h-4 w-4" />
                 Task details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('Edit task:', task.title)}>
-                <Edit className="mr-2 h-4 w-4" />
+              <DropdownMenuItem onClick={() => openEditModal(task)}>
+                <Edit className="h-4 w-4" />
                 Edit task
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => console.log('Mark task:', task.title)}>
-                <CheckSquare className="mr-2 h-4 w-4" />
-                {task.status === "completed" ? "Mark incomplete" : "Mark complete"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('Duplicate task:', task.title)}>
-                <Copy className="mr-2 h-4 w-4" />
+              {task.status !== "completed" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(task, "completed")}>
+                  <CheckSquare className="h-4 w-4" />
+                  Mark completed
+                </DropdownMenuItem>
+              )}
+              {task.status !== "in_progress" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(task, "in_progress")}>
+                  <ArrowRight className="h-4 w-4" />
+                  Mark in progress
+                </DropdownMenuItem>
+              )}
+              {task.status !== "todo" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(task, "todo")}>
+                  <Circle className="h-4 w-4" />
+                  Mark to do
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleDuplicateTask(task)}>
+                <Copy className="h-4 w-4" />
                 Duplicate task
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500" onClick={() => console.log('Delete task:', task.title)}>
-                <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteTask(task)}>
+                <Trash2 className="h-4 w-4 text-red-500" />
                 Delete task
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -549,18 +591,11 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-medium tracking-tight">Tasks</h2>
-          <p className="text-muted-foreground text-sm">
-            Manage and track tasks for {project.title}
-          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => console.log('Quick add task clicked')}>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Task
-          </Button>
-          <Button variant="outline" onClick={() => console.log('Open in editor clicked')}>
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Open in editor
           </Button>
         </div>
       </div>
@@ -568,9 +603,11 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Task Progress</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary">
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{taskStats.completionRate}%</div>
@@ -580,12 +617,14 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary">
+              <TrendingUp className="h-4 w-4 text-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{taskStats.inProgressTasks}</div>
+            <div className="text-2xl font-bold">{taskStats.inProgressTasks}</div>
             <p className="text-xs text-muted-foreground">
               {taskStats.todoTasks} in backlog
             </p>
@@ -594,10 +633,12 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary"> 
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{taskStats.urgentTasks}</div>
+            <div className="text-2xl font-bold">{taskStats.urgentTasks}</div>
             <p className="text-xs text-muted-foreground">
               Urgent & high priority
             </p>
@@ -606,10 +647,12 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary"> 
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{taskStats.overdueTasks}</div>
+            <div className="text-2xl font-bold">{taskStats.overdueTasks}</div>
             <p className="text-xs text-muted-foreground">
               Need attention
             </p>
@@ -718,56 +761,53 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       
       {/* Conditional rendering based on view mode */}
       {viewMode === 'list' ? (
-        <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} colSpan={header.colSpan}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader className="bg-muted sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-muted/50"
                   >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
                     ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={taskColumns.length}
-                      className="h-24 text-center"
-                    >
-                      No tasks found.
-                    </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={taskColumns.length}
+                    className="h-24 text-center"
+                  >
+                    No tasks found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -778,22 +818,29 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
               const today = new Date();
               const isOverdue = dueDate && dueDate < today && task.status !== "completed";
               const isDueSoon = dueDate && dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !isOverdue && task.status !== "completed";
+              const commentsCount = task.comments?.length || 0;
+              const hasNewComment = new Date(task.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
               
               return (
-                <Card key={task.id} className="group hover:shadow-md transition-all duration-200">
+                <Card key={task.id} className="group justify-between hover:shadow-sm transition-all duration-200">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <Button 
-                            variant="link" 
-                            className="p-0 h-auto text-left justify-start"
-                            onClick={() => openTaskSheet(task)}
-                          >
-                            <CardTitle className="text-lg hover:text-primary transition-colors">
-                              {task.title}
-                            </CardTitle>
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <div className={`p-2 rounded-md ${getPriorityConfig(task.priority).bg}`}>
+                              {getPriorityIcon(task.priority)}
+                            </div>
+                            <Button 
+                              variant="link" 
+                              className="p-0 h-auto text-left justify-start"
+                              onClick={() => openTaskSheet(task)}
+                            >
+                              <CardTitle className="text-lg hover:text-primary transition-colors">
+                                {task.title}
+                              </CardTitle>
+                            </Button>
+                          </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="outline" className="h-8 w-8 p-0">
@@ -802,17 +849,42 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => openTaskSheet(task)}>
-                                <Eye className="mr-2 h-4 w-4" />
+                                <Eye className="h-4 w-4" />
                                 Task details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => console.log('Edit task:', task.title)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Task
+                              <DropdownMenuItem onClick={() => openEditModal(task)}>
+                                <Edit className="h-4 w-4" />
+                                Edit task
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-500">
-                                <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                              {task.status !== "completed" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(task, "completed")}>
+                                  <CheckSquare className="h-4 w-4" />
+                                  Mark completed
+                                </DropdownMenuItem>
+                              )}
+                              {task.status !== "in_progress" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(task, "in_progress")}>
+                                  <ArrowRight className="h-4 w-4" />
+                                  Mark in progress
+                                </DropdownMenuItem>
+                              )}
+                              {task.status !== "todo" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(task, "todo")}>
+                                  <Circle className="h-4 w-4" />
+                                  Mark to do
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDuplicateTask(task)}>
+                                <Copy className="h-4 w-4" />
+                                Duplicate task
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteTask(task)}>
+                                <Trash2 className="h-4 w-4 text-red-500" />
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -822,24 +894,18 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
                           <Badge className={getStatusColor(task.status)}>
                             {task.status.replace("_", " ")}
                           </Badge>
-                          <Badge className={`text-xs ${getPriorityColor(task.priority)}`}>
-                            <Flag className="h-3 w-3 mr-1" />
-                            {task.priority}
-                          </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        <p className="text-sm text-muted-foreground mt-6 line-clamp-2">
                           {task.description || "No description"}
                         </p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="space-y-3">
-
-
-
+                    <div className="flex flex-col justify-between gap-2">
                       {/* Due Date */}
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <div className={`text-sm ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-muted-foreground'}`}>
                           Task due on {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
@@ -854,42 +920,56 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
                             Due Soon
                           </Badge>
                         )}
+                        </div>
+                      <div className="flex items-center">
+                          <Button 
+                            variant="ghost" 
+                            size="xs"
+                            className="flex items-center space-x-1 hover:bg-muted p-1 h-auto"
+                            onClick={() => openTaskSheet(task)}
+                          >
+                            <MessageCircle className="h-3 w-3" />
+                            <span className="text-xs">{commentsCount}</span>
+                            {hasNewComment && commentsCount > 0 && (
+                              <Badge variant="destructive" className="text-xs px-1 ml-1">
+                                new
+                              </Badge>
+                            )}
+                          </Button>
+                      </div>
                       </div>
 
-
-
-
-        {/* Meta Information */}
-        <div className="space-y-2 border-t pt-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center space-x-1">
-<User className="h-4 w-4 text-muted-foreground" />
-                        {assignee ? (
-                          <div className="flex items-center space-x-2">
-                            <Avatar className="h-6 w-6 border border-background">
-                              <AvatarImage src={assignee.avatarUrl} />
-                              <AvatarFallback className="text-xs">
-                                {assignee.name.split(" ").map(n => n[0]).join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="text-sm text-muted-foreground">
-                              {assignee.name}
+                      {/* Meta Information */}
+                      <div className="space-y-2 border-t pt-3">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                          <div className="flex items-center gap-2">
+                            {assignee ? (
+                              <div className="flex items-center space-x-2">
+                                <Avatar className="h-6 w-6 border border-background">
+                                  <AvatarImage src={assignee.avatarUrl} />
+                                  <AvatarFallback className="text-xs">
+                                    {assignee.name.split(" ").map(n => n[0]).join("")}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="text-sm text-muted-foreground">
+                                  {assignee.name}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Unassigned</div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="text-muted-foreground">
+                              {formatRelativeTime(task.updatedAt)}
                             </div>
                           </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">Unassigned</div>
-                        )}
-            </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="text-muted-foreground">
-                          {formatRelativeTime(task.updatedAt)}
                         </div>
                       </div>
-          </div>
-        </div>
 
                       {/* Open Task Button */}
                       <Button 
+                        variant="default"
                         className="w-full" 
                         onClick={() => openTaskSheet(task)}
                       >
@@ -901,8 +981,8 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
               );
             })
           ) : (
-            <div className="col-span-full flex items-center justify-center h-32 text-muted-foreground">
-              No tasks found.
+            <div className="col-span-full text-sm flex items-center border rounded-xl justify-center h-50 bg-card text-muted-foreground">
+              <p>No tasks found.</p>
             </div>
           )}
         </div>
@@ -937,6 +1017,22 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         task={selectedTask}
         open={isTaskSheetOpen}
         onOpenChange={setIsTaskSheetOpen}
+      />
+
+      {/* Task Create Modal */}
+      <TaskCreateModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        projectId={project.id}
+        onCreateTask={handleCreateTask}
+      />
+
+      {/* Task Edit Modal */}
+      <TaskEditModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        task={editingTask}
+        onUpdateTask={handleUpdateTask}
       />
     </div>
   );

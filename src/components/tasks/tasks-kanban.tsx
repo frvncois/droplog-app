@@ -30,7 +30,7 @@ import {
 import { format } from "date-fns";
 import Link from "next/link";
 
-type TaskStatus = "todo" | "in_progress" | "completed";
+type TaskStatus = "todo" | "in_progress" | "completed" | "cancelled";
 
 interface KanbanColumn {
   id: TaskStatus;

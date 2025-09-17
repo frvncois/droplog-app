@@ -108,6 +108,7 @@ const statusOptions = [
   { value: "active", label: "Active" },
   { value: "completed", label: "Completed" },
   { value: "archived", label: "Archived" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 // Sort options

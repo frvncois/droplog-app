@@ -23,7 +23,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 animate-fadeIn">
       <ProjectsHeader onProjectCreated={handleProjectCreated} />
       <ProjectsStats projects={projects} />
       <ProjectsDataTable projects={projects} />

@@ -35,7 +35,7 @@ export function ProjectsHeader({ onProjectCreated }: ProjectsHeaderProps) {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div className="space-y-0">
             <div className="flex items-center space-x-3">
               <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>

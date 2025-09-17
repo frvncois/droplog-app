@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
-// import { ModalProvider } from "@/components/modals/modal-provider";
 
 export const metadata: Metadata = {
   title: "Droplog - Project Management Platform",
