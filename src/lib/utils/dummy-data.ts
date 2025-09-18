@@ -55,6 +55,23 @@ export interface Content {
   url?: string;
 }
 
+export interface Documentation {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  type: string;
+  status: "draft" | "review" | "published" | "archived";
+  author: string;
+  projectId: string;
+  createdAt: string;
+  updatedAt: string;
+  tags: string[];
+  wordCount: number;
+  readTime: number;
+  content?: string;
+}
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -245,6 +262,99 @@ export const content: Content[] = [
     assignedTo: "u5",
     content: "Detailed product descriptions for the e-commerce catalog...",
     wordCount: 2100
+  }
+];
+
+export const documentation: Documentation[] = [
+  {
+    id: "doc1",
+    title: "Project Setup Guide",
+    description: "Complete guide for setting up this project with all necessary configurations and dependencies.",
+    category: "Setup",
+    type: "Guide",
+    status: "published",
+    author: "u1",
+    projectId: "p1",
+    createdAt: "2025-09-01T10:00:00Z",
+    updatedAt: "2025-09-10T14:30:00Z",
+    tags: ["setup", "getting-started", "configuration"],
+    wordCount: 1250,
+    readTime: 5
+  },
+  {
+    id: "doc2",
+    title: "API Documentation",
+    description: "Comprehensive RESTful API endpoints documentation with examples and response formats.",
+    category: "API",
+    type: "Reference",
+    status: "published",
+    author: "u2",
+    projectId: "p1",
+    createdAt: "2025-08-15T09:00:00Z",
+    updatedAt: "2025-09-08T16:45:00Z",
+    tags: ["api", "endpoints", "integration"],
+    wordCount: 3200,
+    readTime: 12
+  },
+  {
+    id: "doc3",
+    title: "Design System",
+    description: "Brand guidelines, color palettes, typography, and component library specifications.",
+    category: "Design",
+    type: "Guidelines",
+    status: "draft",
+    author: "u3",
+    projectId: "p1",
+    createdAt: "2025-09-05T11:20:00Z",
+    updatedAt: "2025-09-11T10:15:00Z",
+    tags: ["design", "branding", "components"],
+    wordCount: 890,
+    readTime: 4
+  },
+  {
+    id: "doc4",
+    title: "Deployment Guide",
+    description: "Step-by-step deployment procedures for production and staging environments.",
+    category: "Operations",
+    type: "Guide",
+    status: "review",
+    author: "u2",
+    projectId: "p2",
+    createdAt: "2025-09-07T13:30:00Z",
+    updatedAt: "2025-09-09T09:20:00Z",
+    tags: ["deployment", "operations", "production"],
+    wordCount: 1800,
+    readTime: 7
+  },
+  {
+    id: "doc5",
+    title: "Testing Guidelines",
+    description: "Best practices for unit testing, integration testing, and end-to-end testing strategies.",
+    category: "Development",
+    type: "Guidelines",
+    status: "published",
+    author: "u1",
+    projectId: "p2",
+    createdAt: "2025-08-20T14:00:00Z",
+    updatedAt: "2025-09-05T11:30:00Z",
+    tags: ["testing", "quality", "automation"],
+    wordCount: 2100,
+    readTime: 8
+  },
+  {
+    id: "doc6",
+    title: "Security Checklist",
+    description: "Essential security measures and compliance requirements for the application.",
+    category: "Security",
+    type: "Checklist",
+    status: "review",
+    author: "u3",
+    projectId: "p4",
+    createdAt: "2025-09-03T16:45:00Z",
+    updatedAt: "2025-09-08T09:15:00Z",
+    tags: ["security", "compliance", "audit"],
+    wordCount: 950,
+    readTime: 4
   }
 ];
 
@@ -525,6 +635,10 @@ export const getAssetsByProjectId = (projectId: string): Asset[] => {
 
 export const getContentByProjectId = (projectId: string): Content[] => {
   return content.filter(item => item.projectId === projectId);
+};
+
+export const getDocumentationByProjectId = (projectId: string): Documentation[] => {
+  return documentation.filter(doc => doc.projectId === projectId);
 };
 
 export const getTeamMemberById = (id: string): TeamMember | undefined => {

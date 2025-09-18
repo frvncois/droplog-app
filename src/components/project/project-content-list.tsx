@@ -69,12 +69,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Project,
+
+// Import standardized hooks and types
+import { useContent } from "@/hooks/use-content";
+import { useTeam } from "@/hooks/use-team";
+import type { 
+  Project, 
   Content,
-  getContentByProjectId,
-  getTeamMemberById 
-} from "@/lib/utils/dummy-data";
+  TeamMember
+} from "@/lib/types";
 import { formatRelativeTime } from "@/lib/utils";
 import { ContentCreateModal } from "../modals/content-create-modal";
 import { ContentSheetModal } from "../modals/content-sheet-modal";
@@ -156,21 +159,12 @@ const sortOptions = [
 
 interface ProjectContentListProps {
   project: Project;
-  content?: Content[];
 }
 
-export function ProjectContentList({ project, content: externalContent }: ProjectContentListProps) {
-  const originalContent = React.useMemo(() => getContentByProjectId(project.id), [project.id]);
-  const [data, setData] = React.useState(() => externalContent || originalContent);
-
-  // Update data when external content changes
-  React.useEffect(() => {
-    if (externalContent) {
-      setData(externalContent);
-    } else {
-      setData(originalContent);
-    }
-  }, [externalContent, originalContent]);
+export function ProjectContentList({ project }: ProjectContentListProps) {
+  // Use standardized hooks
+  const { content, isLoading, error, refetch } = useContent({ projectId: project.id });
+  const { team, getTeamMemberById } = useTeam();
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -195,144 +189,150 @@ export function ProjectContentList({ project, content: externalContent }: Projec
   const openContentSheet = (content: Content) => {
     setSelectedContent(content);
     setIsContentSheetOpen(true);
-    console.log('Opening content sheet for:', content.title);
   };
 
   // Function to open edit modal
   const openEditModal = (content: Content) => {
     setEditingContent(content);
     setIsEditModalOpen(true);
-    console.log('Opening edit modal for:', content.title);
   };
 
   // Function to handle content status change
-  const handleStatusChange = (content: Content, newStatus: "draft" | "pending" | "approved") => {
-    const updatedContent: Content = {
-      ...content,
-      status: newStatus,
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => prev.map(c => c.id === content.id ? updatedContent : c));
-    console.log(`Content "${content.title}" status changed to:`, newStatus);
+  const handleStatusChange = (contentItem: Content, newStatus: "draft" | "pending" | "approved") => {
+    // TODO: Replace with actual API call
+    console.log(`Content "${contentItem.title}" status changed to:`, newStatus);
+    refetch(); // Refresh data after change
   };
 
   // Function to handle content creation
   const handleCreateContent = (newContentData: Omit<Content, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newContent: Content = {
-      ...newContentData,
-      id: `c${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => [newContent, ...prev]);
-    console.log('Created new content:', newContent);
+    // TODO: Replace with actual API call
+    console.log('Created new content:', newContentData);
+    refetch(); // Refresh data after creation
   };
 
   // Function to handle content update
   const handleUpdateContent = (updatedContent: Content) => {
-    setData(prev => prev.map(c => c.id === updatedContent.id ? updatedContent : c));
+    // TODO: Replace with actual API call
     console.log('Updated content:', updatedContent);
+    refetch(); // Refresh data after update
   };
 
   // Function to handle content deletion
-  const handleDeleteContent = (content: Content) => {
-    if (confirm(`Are you sure you want to delete "${content.title}"?`)) {
-      setData(prev => prev.filter(c => c.id !== content.id));
-      console.log('Deleted content:', content.title);
+  const handleDeleteContent = (contentItem: Content) => {
+    if (confirm(`Are you sure you want to delete "${contentItem.title}"?`)) {
+      // TODO: Replace with actual API call
+      console.log('Deleted content:', contentItem.title);
+      refetch(); // Refresh data after deletion
     }
   };
 
   // Function to handle content duplication
-  const handleDuplicateContent = (content: Content) => {
-    const duplicatedContent: Content = {
-      ...content,
-      id: `c${Date.now()}`,
-      title: `${content.title} (Copy)`,
-      status: "draft",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => [duplicatedContent, ...prev]);
-    console.log('Duplicated content:', duplicatedContent);
+  const handleDuplicateContent = (contentItem: Content) => {
+    // TODO: Replace with actual API call
+    console.log('Duplicated content:', contentItem);
+    refetch(); // Refresh data after duplication
   };
 
-  // Get unique assignees for filter
+  // Get unique assignees for filter - optimized with useMemo
   const uniqueAssignees = React.useMemo(() => {
-    const assignees = data
-      .map(content => content.assignedTo)
-      .filter((assignee): assignee is string => assignee !== undefined)
-      .filter((assignee, index, array) => array.indexOf(assignee) === index);
+    const assignees = content
+      .map((contentItem: Content) => contentItem.assignedTo)
+      .filter((assignee: string | undefined): assignee is string => assignee !== undefined)
+      .filter((assignee: string, index: number, array: string[]) => array.indexOf(assignee) === index);
     
-    return assignees.map(assigneeId => {
+    return assignees.map((assigneeId: string) => {
       const member = getTeamMemberById(assigneeId);
       return member ? { value: assigneeId, label: member.name } : null;
-    }).filter((item): item is { value: string; label: string } => item !== null);
-  }, [data]);
+    }).filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
+  }, [content, getTeamMemberById]);
 
-  // Content statistics
+  // Content statistics - optimized with useMemo and single pass calculation
   const contentStats = React.useMemo(() => {
-    const totalContent = data.length;
-    const draftContent = data.filter(c => c.status === "draft");
-    const pendingContent = data.filter(c => c.status === "pending");
-    const approvedContent = data.filter(c => c.status === "approved");
-    
-    // Type counts
-    const blogPosts = data.filter(c => c.type === "blog_post");
-    const pages = data.filter(c => c.type === "page");
-    
-    // Recent analysis
+    if (!content.length) {
+      return {
+        totalContent: 0,
+        draftContent: 0,
+        pendingContent: 0,
+        approvedContent: 0,
+        blogPosts: 0,
+        recentContent: 0,
+        approvalRate: 0
+      };
+    }
+
     const today = new Date();
-    const recentContent = data.filter(c => {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return new Date(c.updatedAt) > weekAgo;
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    // Single pass calculation for better performance
+    const stats = content.reduce((acc: {
+      draftContent: number;
+      pendingContent: number;
+      approvedContent: number;
+      blogPosts: number;
+      recentContent: number;
+    }, c: Content) => {
+      // Status counts
+      if (c.status === "draft") acc.draftContent++;
+      else if (c.status === "pending") acc.pendingContent++;
+      else if (c.status === "approved") acc.approvedContent++;
+
+      // Type counts
+      if (c.type === "blog_post" || c.type === "page") acc.blogPosts++;
+
+      // Recent content
+      if (new Date(c.updatedAt) > weekAgo) acc.recentContent++;
+
+      return acc;
+    }, {
+      draftContent: 0,
+      pendingContent: 0,
+      approvedContent: 0,
+      blogPosts: 0,
+      recentContent: 0
     });
-    
-    const approvalRate = totalContent > 0 ? Math.round((approvedContent.length / totalContent) * 100) : 0;
+
+    const totalContent = content.length;
+    const approvalRate = totalContent > 0 ? Math.round((stats.approvedContent / totalContent) * 100) : 0;
     
     return {
       totalContent,
-      draftContent: draftContent.length,
-      pendingContent: pendingContent.length,
-      approvedContent: approvedContent.length,
-      blogPosts: blogPosts.length + pages.length,
-      recentContent: recentContent.length,
+      ...stats,
       approvalRate
     };
-  }, [data]);
+  }, [content]);
 
-  // Filter and sort content
+  // Filter and sort content - optimized
   const filteredAndSortedContent = React.useMemo(() => {
-    let filtered = data;
+    let filtered = content;
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(content =>
-        content.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (content.content?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      const lowercaseSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter((contentItem: Content) =>
+        contentItem.title.toLowerCase().includes(lowercaseSearchTerm) ||
+        (contentItem.content?.toLowerCase().includes(lowercaseSearchTerm) ?? false)
       );
     }
 
     // Apply status filter
     if (statusFilter !== "all") {
-      filtered = filtered.filter(content => content.status === statusFilter);
+      filtered = filtered.filter((contentItem: Content) => contentItem.status === statusFilter);
     }
 
     // Apply type filter
     if (typeFilter !== "all") {
-      filtered = filtered.filter(content => content.type === typeFilter);
+      filtered = filtered.filter((contentItem: Content) => contentItem.type === typeFilter);
     }
 
     // Apply assignee filter
     if (assigneeFilter !== "all") {
-      filtered = filtered.filter(content => content.assignedTo === assigneeFilter);
+      filtered = filtered.filter((contentItem: Content) => contentItem.assignedTo === assigneeFilter);
     }
 
     // Apply sorting
-    filtered = [...filtered].sort((a, b) => {
+    filtered = [...filtered].sort((a: Content, b: Content) => {
       switch (sortBy) {
         case "title":
           return a.title.localeCompare(b.title);
@@ -352,7 +352,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
     });
 
     return filtered;
-  }, [data, searchTerm, statusFilter, typeFilter, assigneeFilter, sortBy]);
+  }, [content, searchTerm, statusFilter, typeFilter, assigneeFilter, sortBy]);
 
   const contentColumns: ColumnDef<Content>[] = [
     {
@@ -361,7 +361,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       cell: ({ row }) => {
         const type = row.getValue("type") as string;
         return (
-          <div className="p-2 rounded-md flex items-center justify-center bg-muted">
+          <div className={`p-2 rounded-md flex flex-col items-center ${getTypeColor(type)}`}>
             {getTypeIcon(type)}
           </div>
         );
@@ -372,19 +372,19 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       accessorKey: "title",
       header: "Content",
       cell: ({ row }) => {
-        const content = row.original;
+        const contentItem = row.original;
         
         return (
           <div className="flex flex-col p-2">
             <Button 
               variant="link" 
               className="p-0 h-auto font-medium hover:text-primary transition-colors cursor-pointer text-left justify-start"
-              onClick={() => openContentSheet(content)}
+              onClick={() => openContentSheet(contentItem)}
             >
-              {content.title}
+              {contentItem.title}
             </Button>
             <div className="text-xs text-muted-foreground line-clamp-1">
-              {content.content ? `${content.content.slice(0, 60)}...` : "No content"}
+              {contentItem.content ? `${contentItem.content.slice(0, 60)}...` : "No content"}
             </div>
           </div>
         );
@@ -461,7 +461,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
-        const content = row.original;
+        const contentItem = row.original;
 
         return (
           <DropdownMenu>
@@ -474,49 +474,49 @@ export function ProjectContentList({ project, content: externalContent }: Projec
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => openContentSheet(content)}>
+              <DropdownMenuItem onClick={() => openContentSheet(contentItem)}>
                 <Eye className="h-4 w-4" />
                 Content details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => openEditModal(content)}>
+              <DropdownMenuItem onClick={() => openEditModal(contentItem)}>
                 <Edit className="h-4 w-4" />
                 Edit content
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {content.status !== "approved" && (
-                <DropdownMenuItem onClick={() => handleStatusChange(content, "approved")}>
+              {contentItem.status !== "approved" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(contentItem, "approved")}>
                   <Check className="h-4 w-4" />
                   Mark approved
                 </DropdownMenuItem>
               )}
-              {content.status !== "pending" && (
-                <DropdownMenuItem onClick={() => handleStatusChange(content, "pending")}>
+              {contentItem.status !== "pending" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(contentItem, "pending")}>
                   <Clock className="h-4 w-4" />
                   Mark pending
                 </DropdownMenuItem>
               )}
-              {content.status !== "draft" && (
-                <DropdownMenuItem onClick={() => handleStatusChange(content, "draft")}>
+              {contentItem.status !== "draft" && (
+                <DropdownMenuItem onClick={() => handleStatusChange(contentItem, "draft")}>
                   <Edit className="h-4 w-4" />
                   Mark draft
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => console.log('AI optimize:', content.title)}>
+              <DropdownMenuItem onClick={() => console.log('AI optimize:', contentItem.title)}>
                 <Wand2 className="h-4 w-4" />
                 AI optimize
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('Translate:', content.title)}>
+              <DropdownMenuItem onClick={() => console.log('Translate:', contentItem.title)}>
                 <Languages className="h-4 w-4" />
                 Translate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleDuplicateContent(content)}>
+              <DropdownMenuItem onClick={() => handleDuplicateContent(contentItem)}>
                 <Copy className="h-4 w-4" />
                 Duplicate content
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteContent(content)}>
+              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteContent(contentItem)}>
                 <Trash2 className="h-4 w-4 text-red-500" />
                 Delete content
               </DropdownMenuItem>
@@ -566,7 +566,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Content Progress</CardTitle>
             <div className="p-2 rounded-md bg-secondary">
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <Target className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
@@ -594,7 +594,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Blog & Pages</CardTitle>
             <div className="p-2 rounded-md bg-secondary"> 
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
@@ -608,7 +608,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Recent</CardTitle>
             <div className="p-2 rounded-md bg-secondary"> 
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
@@ -771,11 +771,11 @@ export function ProjectContentList({ project, content: externalContent }: Projec
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedContent.length > 0 ? (
-            filteredAndSortedContent.map((content) => {
-              const assignee = content.assignedTo ? getTeamMemberById(content.assignedTo) : null;
+            filteredAndSortedContent.map((contentItem: Content) => {
+              const assignee: TeamMember | undefined = contentItem.assignedTo ? getTeamMemberById(contentItem.assignedTo) : undefined;
               
               return (
-                <Card key={content.id} className="group justify-between hover:shadow-sm transition-all duration-200">
+                <Card key={contentItem.id} className="group justify-between hover:shadow-sm transition-all duration-200">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -784,10 +784,10 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                             <Button 
                               variant="link" 
                               className="p-0 h-auto text-left justify-start"
-                              onClick={() => openContentSheet(content)}
+                              onClick={() => openContentSheet(contentItem)}
                             >
                               <CardTitle className="text-lg hover:text-primary transition-colors">
-                                {content.title}
+                                {contentItem.title}
                               </CardTitle>
                             </Button>
                           </div>
@@ -800,49 +800,49 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openContentSheet(content)}>
+                              <DropdownMenuItem onClick={() => openContentSheet(contentItem)}>
                                 <Eye className="h-4 w-4" />
                                 Content details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditModal(content)}>
+                              <DropdownMenuItem onClick={() => openEditModal(contentItem)}>
                                 <Edit className="h-4 w-4" />
                                 Edit content
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {content.status !== "approved" && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(content, "approved")}>
+                              {contentItem.status !== "approved" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(contentItem, "approved")}>
                                   <Check className="h-4 w-4" />
                                   Mark approved
                                 </DropdownMenuItem>
                               )}
-                              {content.status !== "pending" && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(content, "pending")}>
+                              {contentItem.status !== "pending" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(contentItem, "pending")}>
                                   <Clock className="h-4 w-4" />
                                   Mark pending
                                 </DropdownMenuItem>
                               )}
-                              {content.status !== "draft" && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(content, "draft")}>
+                              {contentItem.status !== "draft" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(contentItem, "draft")}>
                                   <Edit className="h-4 w-4" />
                                   Mark draft
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => console.log('AI optimize:', content.title)}>
+                              <DropdownMenuItem onClick={() => console.log('AI optimize:', contentItem.title)}>
                                 <Wand2 className="h-4 w-4" />
                                 AI optimize
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => console.log('Translate:', content.title)}>
+                              <DropdownMenuItem onClick={() => console.log('Translate:', contentItem.title)}>
                                 <Languages className="h-4 w-4" />
                                 Translate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDuplicateContent(content)}>
+                              <DropdownMenuItem onClick={() => handleDuplicateContent(contentItem)}>
                                 <Copy className="h-4 w-4" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteContent(content)}>
+                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteContent(contentItem)}>
                                 <Trash2 className="h-4 w-4 text-red-500" />
                                 Delete
                               </DropdownMenuItem>
@@ -850,15 +850,15 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                           </DropdownMenu>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
-                          <Badge className={getStatusColor(content.status)}>
-                            {content.status}
+                          <Badge className={getStatusColor(contentItem.status)}>
+                            {contentItem.status}
                           </Badge>
-                          <Badge className={getTypeColor(content.type)}>
-                            {content.type.replace("_", " ")}
+                          <Badge className={getTypeColor(contentItem.type)}>
+                            {contentItem.type.replace("_", " ")}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-6 line-clamp-2">
-                          {content.content ? `${content.content.slice(0, 100)}...` : "No content"}
+                          {contentItem.content ? `${contentItem.content.slice(0, 100)}...` : "No content"}
                         </p>
                       </div>
                     </div>
@@ -870,7 +870,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <div className="text-sm text-muted-foreground">
-                            {content.wordCount ? `${content.wordCount} words` : "No word count"}
+                            {contentItem.wordCount ? `${contentItem.wordCount} words` : "No word count"}
                           </div>
                         </div>
                       </div>
@@ -884,7 +884,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                                 <Avatar className="h-6 w-6 border border-background">
                                   <AvatarImage src={assignee.avatarUrl} />
                                   <AvatarFallback className="text-xs">
-                                    {assignee.name.split(" ").map(n => n[0]).join("")}
+                                    {assignee.name.split(" ").map((n: string) => n[0]).join("")}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="text-sm text-muted-foreground">
@@ -897,7 +897,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <div className="text-muted-foreground">
-                              {formatRelativeTime(content.updatedAt)}
+                              {formatRelativeTime(contentItem.updatedAt)}
                             </div>
                           </div>
                         </div>
@@ -907,7 +907,7 @@ export function ProjectContentList({ project, content: externalContent }: Projec
                       <Button 
                         variant="default"
                         className="w-full" 
-                        onClick={() => openContentSheet(content)}
+                        onClick={() => openContentSheet(contentItem)}
                       >
                         View Content
                       </Button>
@@ -947,7 +947,6 @@ export function ProjectContentList({ project, content: externalContent }: Projec
           </Button>
         </div>
       </div>
-
 
       <ContentSheetModal
         content={selectedContent}

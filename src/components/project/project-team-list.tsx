@@ -71,13 +71,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Project,
-  TeamMember,
-  getTeamMemberById,
-  team,
-  getTasksByProjectId
-} from "@/lib/utils/dummy-data";
+
+// Import standardized hooks and types
+import { useTasks } from "@/hooks/use-tasks";
+import { useTeam } from "@/hooks/use-team";
+import type { 
+  Project, 
+  Task,
+  TeamMember
+} from "@/lib/types";
+
 import { format } from "date-fns";
 import { formatRelativeTime } from "@/lib/utils";
 import { TeamSheetModal } from "@/components/modals/team-sheet-modal";
@@ -145,40 +148,12 @@ const sortOptions = [
 
 interface ProjectTeamListProps {
   project: Project;
-  teamMembers?: ProjectTeamMember[];
 }
 
-export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: ProjectTeamListProps) {
-  // Get project team members with stats
-  const originalTeamMembers: ProjectTeamMember[] = React.useMemo(() => {
-    return (project.assignedTo || [])
-      .map(id => {
-        const member = getTeamMemberById(id);
-        if (!member) return null;
-        
-        const tasks = getTasksByProjectId(project.id).filter(task => task.assignedTo === id);
-        const completedTasks = tasks.filter(task => task.status === "completed");
-        
-        return {
-          ...member,
-          totalTasks: tasks.length,
-          completedTasks: completedTasks.length,
-          activeTasks: tasks.length - completedTasks.length
-        } as ProjectTeamMember;
-      })
-      .filter((member): member is ProjectTeamMember => member !== null);
-  }, [project.id, project.assignedTo]);
-
-  const [data, setData] = React.useState(() => externalTeamMembers || originalTeamMembers);
-
-  // Update data when external team members change
-  React.useEffect(() => {
-    if (externalTeamMembers) {
-      setData(externalTeamMembers);
-    } else {
-      setData(originalTeamMembers);
-    }
-  }, [externalTeamMembers, originalTeamMembers]);
+export function ProjectTeamList({ project }: ProjectTeamListProps) {
+  // Use standardized hooks
+  const { tasks, refetch: refetchTasks } = useTasks({ projectId: project.id });
+  const { team, getTeamMemberById, refetch: refetchTeam } = useTeam();
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -195,6 +170,26 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
   const [isTeamSheetOpen, setIsTeamSheetOpen] = React.useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
 
+  // Get project team members with stats - optimized with useMemo
+  const projectTeamMembers: ProjectTeamMember[] = React.useMemo(() => {
+    return (project.assignedTo || [])
+      .map((id: string) => {
+        const member = getTeamMemberById(id);
+        if (!member) return null;
+        
+        const memberTasks = tasks.filter((task: Task) => task.assignedTo === id);
+        const completedTasks = memberTasks.filter((task: Task) => task.status === "completed");
+        
+        return {
+          ...member,
+          totalTasks: memberTasks.length,
+          completedTasks: completedTasks.length,
+          activeTasks: memberTasks.length - completedTasks.length
+        } as ProjectTeamMember;
+      })
+      .filter((member): member is ProjectTeamMember => member !== null);
+  }, [project.assignedTo, tasks, getTeamMemberById]);
+
   // Function to open team sheet modal
   const openTeamSheet = (member: ProjectTeamMember) => {
     setSelectedMember(member);
@@ -203,67 +198,54 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
 
   // Function to handle role change
   const handleRoleChange = (member: ProjectTeamMember, newRole: string) => {
-    const updatedMember: ProjectTeamMember = {
-      ...member,
-      role: newRole as any,
-    };
-    
-    setData(prev => prev.map(m => m.id === member.id ? updatedMember : m));
+    // TODO: Replace with actual API call
     console.log(`Member "${member.name}" role changed to:`, newRole);
+    refetchTeam(); // Refresh team data after role change
   };
 
   // Function to handle member addition
   const handleAddMember = (memberData: { memberId: string; role: string }) => {
-    const member = getTeamMemberById(memberData.memberId);
-    if (!member) return;
-    
-    const tasks = getTasksByProjectId(project.id).filter(task => task.assignedTo === member.id);
-    const completedTasks = tasks.filter(task => task.status === "completed");
-    
-    const newProjectMember: ProjectTeamMember = {
-      ...member,
-      role: memberData.role as any,
-      totalTasks: tasks.length,
-      completedTasks: completedTasks.length,
-      activeTasks: tasks.length - completedTasks.length
-    };
-    
-    setData(prev => [newProjectMember, ...prev]);
-    console.log('Added member to project:', newProjectMember);
+    // TODO: Replace with actual API call
+    console.log('Add member to project:', memberData);
+    refetchTeam(); // Refresh team data after addition
   };
 
   // Function to handle member removal
   const handleRemoveMember = (member: ProjectTeamMember) => {
     if (confirm(`Are you sure you want to remove "${member.name}" from this project?`)) {
-      setData(prev => prev.filter(m => m.id !== member.id));
-      console.log('Removed member from project:', member.name);
+      // TODO: Replace with actual API call
+      console.log('Remove member from project:', member.name);
+      refetchTeam(); // Refresh team data after removal
     }
   };
 
-  // Get available team members not in project
-  const availableMembers = team.filter(member => 
-    !data.some(projectMember => projectMember.id === member.id)
-  );
+  // Get available team members not in project - optimized with useMemo
+  const availableMembers = React.useMemo(() => {
+    return team.filter((member: TeamMember) => 
+      !projectTeamMembers.some((projectMember: ProjectTeamMember) => projectMember.id === member.id)
+    );
+  }, [team, projectTeamMembers]);
 
-  // Filter and sort team members
+  // Filter and sort team members - optimized with useMemo
   const filteredAndSortedTeamMembers = React.useMemo(() => {
-    let filtered = data;
+    let filtered = projectTeamMembers;
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(member =>
-        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      const lowercaseSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter((member: ProjectTeamMember) =>
+        member.name.toLowerCase().includes(lowercaseSearchTerm) ||
+        (member.email?.toLowerCase().includes(lowercaseSearchTerm) ?? false)
       );
     }
 
     // Apply role filter
     if (roleFilter !== "all") {
-      filtered = filtered.filter(member => member.role === roleFilter);
+      filtered = filtered.filter((member: ProjectTeamMember) => member.role === roleFilter);
     }
 
     // Apply sorting
-    filtered = [...filtered].sort((a, b) => {
+    filtered = [...filtered].sort((a: ProjectTeamMember, b: ProjectTeamMember) => {
       switch (sortBy) {
         case "name":
           return a.name.localeCompare(b.name);
@@ -283,14 +265,14 @@ export function ProjectTeamList({ project, teamMembers: externalTeamMembers }: P
     });
 
     return filtered;
-  }, [data, searchTerm, roleFilter, sortBy]);
+  }, [projectTeamMembers, searchTerm, roleFilter, sortBy]);
 
-const teamColumns: ColumnDef<ProjectTeamMember>[] = [
+  const teamColumns: ColumnDef<ProjectTeamMember>[] = [
     {
-      id: "roleIcon", // Changed from accessorKey: "role" to unique id
+      id: "roleIcon",
       header: () => '',
       cell: ({ row }) => {
-        const role = row.original.role; // Access role from row.original instead
+        const role = row.original.role;
         return (
           <div className="p-2 rounded-md flex flex-col items-center bg-secondary">
             {getRoleIcon(role)}
@@ -311,7 +293,7 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
               <Avatar className="h-10 w-10">
                 <AvatarImage src={member.avatarUrl} />
                 <AvatarFallback>
-                  {member.name.split(" ").map(n => n[0]).join("")}
+                  {member.name.split(" ").map((n: string) => n[0]).join("")}
                 </AvatarFallback>
               </Avatar>
               <Button 
@@ -327,7 +309,7 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
       },
     },
     {
-      accessorKey: "role", // Keep this one as is
+      accessorKey: "role",
       header: "Role",
       cell: ({ row }) => {
         const role = row.getValue("role") as string;
@@ -476,12 +458,22 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
     },
   });
 
-  // Team stats
-  const totalMembers = data.length;
-  const activeMembers = data.filter(m => m.activeTasks > 0).length;
-  const totalTasks = data.reduce((sum, member) => sum + member.totalTasks, 0);
-  const completedTasks = data.reduce((sum, member) => sum + member.completedTasks, 0);
-  const teamCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  // Team stats - optimized with useMemo
+  const teamStats = React.useMemo(() => {
+    const totalMembers = projectTeamMembers.length;
+    const activeMembers = projectTeamMembers.filter((m: ProjectTeamMember) => m.activeTasks > 0).length;
+    const totalTasks = projectTeamMembers.reduce((sum: number, member: ProjectTeamMember) => sum + member.totalTasks, 0);
+    const completedTasks = projectTeamMembers.reduce((sum: number, member: ProjectTeamMember) => sum + member.completedTasks, 0);
+    const teamCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    return {
+      totalMembers,
+      activeMembers,
+      totalTasks,
+      completedTasks,
+      teamCompletionRate
+    };
+  }, [projectTeamMembers]);
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -511,9 +503,9 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalMembers}</div>
+            <div className="text-2xl font-bold">{teamStats.totalMembers}</div>
             <p className="text-xs text-muted-foreground">
-              {activeMembers} currently active
+              {teamStats.activeMembers} currently active
             </p>
           </CardContent>
         </Card>
@@ -525,7 +517,7 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teamCompletionRate}%</div>
+            <div className="text-2xl font-bold">{teamStats.teamCompletionRate}%</div>
             <p className="text-xs text-muted-foreground">
               Overall completion rate
             </p>
@@ -539,7 +531,7 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTasks}</div>
+            <div className="text-2xl font-bold">{teamStats.totalTasks}</div>
             <p className="text-xs text-muted-foreground">
               Assigned to team
             </p>
@@ -553,7 +545,7 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedTasks}</div>
+            <div className="text-2xl font-bold">{teamStats.completedTasks}</div>
             <p className="text-xs text-muted-foreground">
               Tasks completed
             </p>
@@ -680,7 +672,7 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedTeamMembers.length > 0 ? (
-            filteredAndSortedTeamMembers.map((member) => {
+            filteredAndSortedTeamMembers.map((member: ProjectTeamMember) => {
               const completionRate = member.totalTasks > 0 
                 ? Math.round((member.completedTasks / member.totalTasks) * 100) 
                 : 0;
@@ -698,7 +690,7 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
                             <Avatar className="h-12 w-12">
                               <AvatarImage src={member.avatarUrl} />
                               <AvatarFallback>
-                                {member.name.split(" ").map(n => n[0]).join("")}
+                                {member.name.split(" ").map((n: string) => n[0]).join("")}
                               </AvatarFallback>
                             </Avatar>
                           </div>
@@ -860,10 +852,10 @@ const teamColumns: ColumnDef<ProjectTeamMember>[] = [
 
       {/* Team Sheet Modal */}
       <TeamSheetModal
-        member={selectedMember}
+        member={selectedMember as any}
         open={isTeamSheetOpen}
         onOpenChange={setIsTeamSheetOpen}
-        project={project}
+        project={project as any}
       />
 
       {/* Team Add Modal */}

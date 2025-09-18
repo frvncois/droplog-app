@@ -1,19 +1,16 @@
-// components/projects/project-tasks-list.tsx
+// components/project/project-tasks-list.tsx
 
 "use client";
 
 import * as React from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  SortingState,
   useReactTable,
-  VisibilityState,
 } from "@tanstack/react-table";
 import { 
   MoreVertical,
@@ -24,7 +21,6 @@ import {
   Grid,
   List,
   Plus,
-  ExternalLink,
   CheckSquare,
   Edit,
   Copy,
@@ -37,7 +33,6 @@ import {
   TrendingUp,
   Calendar,
   MessageCircle,
-  ArrowUp,
   ArrowRight,
   Circle
 } from "lucide-react";
@@ -70,12 +65,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Project,
-  Task,
-  getTasksByProjectId,
-  getTeamMemberById 
-} from "@/lib/utils/dummy-data";
+import { Project, Task } from "@/lib/types";
+import { useTasks } from "@/hooks/use-tasks";
+import { useTeam } from "@/hooks/use-team";
 import { format } from "date-fns";
 import { formatRelativeTime } from "@/lib/utils";
 import { TaskSheetModal } from "@/components/modals/task-sheet-modal";
@@ -94,25 +86,15 @@ const getStatusColor = (status: string) => {
 const getPriorityConfig = (priority: string) => {
   switch (priority) {
     case "urgent": 
-      return { 
-        bg: "bg-red-50 border-red-200"
-      };
+      return { bg: "bg-red-50 border-red-200" };
     case "high": 
-      return { 
-        bg: "bg-orange-50 border-orange-200"
-      };
+      return { bg: "bg-orange-50 border-orange-200" };
     case "medium": 
-      return { 
-        bg: "bg-amber-50 border-amber-200"
-      };
+      return { bg: "bg-amber-50 border-amber-200" };
     case "low": 
-      return { 
-        bg: "bg-emerald-50 border-emerald-200"
-      };
+      return { bg: "bg-emerald-50 border-emerald-200" };
     default: 
-      return { 
-        bg: "bg-slate-50 border-slate-200"
-      };
+      return { bg: "bg-slate-50 border-slate-200" };
   }
 };
 
@@ -158,28 +140,228 @@ const sortOptions = [
   { value: "dueDate", label: "Due Date" },
 ];
 
+// Memoized components
+const TaskActionsDropdown = React.memo(function TaskActionsDropdown({
+  task,
+  onViewTask,
+  onEditTask,
+  onStatusChange,
+  onDuplicate,
+  onDelete,
+}: {
+  task: Task;
+  onViewTask: (task: Task) => void;
+  onEditTask: (task: Task) => void;
+  onStatusChange: (task: Task, status: Task['status']) => void;
+  onDuplicate: (task: Task) => void;
+  onDelete: (task: Task) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onViewTask(task)}>
+          <Eye className="h-4 w-4" />
+          Task details
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onEditTask(task)}>
+          <Edit className="h-4 w-4" />
+          Edit task
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {task.status !== "completed" && (
+          <DropdownMenuItem onClick={() => onStatusChange(task, "completed")}>
+            <CheckSquare className="h-4 w-4" />
+            Mark completed
+          </DropdownMenuItem>
+        )}
+        {task.status !== "in_progress" && (
+          <DropdownMenuItem onClick={() => onStatusChange(task, "in_progress")}>
+            <ArrowRight className="h-4 w-4" />
+            Mark in progress
+          </DropdownMenuItem>
+        )}
+        {task.status !== "todo" && (
+          <DropdownMenuItem onClick={() => onStatusChange(task, "todo")}>
+            <Circle className="h-4 w-4" />
+            Mark to do
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onDuplicate(task)}>
+          <Copy className="h-4 w-4" />
+          Duplicate task
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-red-500" onClick={() => onDelete(task)}>
+          <Trash2 className="h-4 w-4 text-red-500" />
+          Delete task
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+});
+
+const TaskCard = React.memo(function TaskCard({
+  task,
+  assignee,
+  onViewTask,
+  onEditTask,
+  onStatusChange,
+  onDuplicate,
+  onDelete,
+}: {
+  task: Task;
+  assignee: any;
+  onViewTask: (task: Task) => void;
+  onEditTask: (task: Task) => void;
+  onStatusChange: (task: Task, status: Task['status']) => void;
+  onDuplicate: (task: Task) => void;
+  onDelete: (task: Task) => void;
+}) {
+  const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+  const today = new Date();
+  const isOverdue = dueDate && dueDate < today && task.status !== "completed";
+  const isDueSoon = dueDate && dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !isOverdue && task.status !== "completed";
+  const commentsCount = task.comments?.length || 0;
+  const hasNewComment = new Date(task.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  return (
+    <Card className="group justify-between hover:shadow-sm transition-all duration-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className={`p-2 rounded-md ${getPriorityConfig(task.priority).bg}`}>
+                  {getPriorityIcon(task.priority)}
+                </div>
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-left justify-start"
+                  onClick={() => onViewTask(task)}
+                >
+                  <CardTitle className="text-lg hover:text-primary transition-colors">
+                    {task.title}
+                  </CardTitle>
+                </Button>
+              </div>
+              <TaskActionsDropdown
+                task={task}
+                onViewTask={onViewTask}
+                onEditTask={onEditTask}
+                onStatusChange={onStatusChange}
+                onDuplicate={onDuplicate}
+                onDelete={onDelete}
+              />
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              {isOverdue && (
+                <Badge variant="destructive" className="text-xs">
+                  Overdue
+                </Badge>
+              )}
+              {isDueSoon && !isOverdue && (
+                <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
+                  Due Soon
+                </Badge>
+              )}
+              <Badge className={getStatusColor(task.status)}>
+                {task.status.replace("_", " ")}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-6 line-clamp-2">
+              {task.description || "No description"}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="flex flex-col justify-between gap-2">
+          {/* Due Date */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm">
+                Task due on {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
+              </div>
+            </div>
+            <div className="flex items-center">
+              <Button 
+                variant="ghost" 
+                size="xs"
+                className="flex items-center space-x-1 hover:bg-muted p-1 h-auto"
+                onClick={() => onViewTask(task)}
+              >
+                <MessageCircle className="h-3 w-3" />
+                <span className="text-xs">{commentsCount} comments</span>
+                {hasNewComment && commentsCount > 0 && (
+                  <Badge variant="destructive" className="text-xs px-1 ml-1">
+                    new
+                  </Badge>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Meta Information */}
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+              <div className="flex items-center gap-2">
+                {assignee ? (
+                  <div className="flex items-center space-x-2">
+                    <Avatar className="h-6 w-6 border border-background">
+                      <AvatarImage src={assignee.avatarUrl} />
+                      <AvatarFallback className="text-xs">
+                        {assignee.name.split(" ").map((n: string) => n[0]).join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm text-muted-foreground">
+                      {assignee.name}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">Unassigned</div>
+                )}
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="text-muted-foreground">
+                  {formatRelativeTime(task.updatedAt)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Open Task Button */}
+          <Button 
+            variant="default"
+            className="w-full" 
+            onClick={() => onViewTask(task)}
+          >
+            View Task
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
 interface ProjectTasksListProps {
-  project: Project;
-  tasks?: Task[];
+  project?: Project;
 }
 
-export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasksListProps) {
-  const originalTasks = React.useMemo(() => getTasksByProjectId(project.id), [project.id]);
-  const [data, setData] = React.useState(() => externalTasks || originalTasks);
+export function ProjectTasksList({ project }: ProjectTasksListProps) {
+  // Hooks
+  const { tasks } = useTasks(project ? { projectId: project.id } : {});
+  const { getTeamMemberById } = useTeam();
 
-  // Update data when external tasks change
-  React.useEffect(() => {
-    if (externalTasks) {
-      setData(externalTasks);
-    } else {
-      setData(originalTasks);
-    }
-  }, [externalTasks, originalTasks]);
-
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  
   // Filter states
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -195,99 +377,53 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [editingTask, setEditingTask] = React.useState<Task | null>(null);
 
-  // Function to open task sheet modal
-  const openTaskSheet = (task: Task) => {
-    setSelectedTask(task);
-    setIsTaskSheetOpen(true);
-  };
+  // Memoized project tasks
+  const projectTasks = React.useMemo(() => {
+    if (!project) return [];
+    return tasks.filter(task => task.projectId === project.id);
+  }, [tasks, project]);
 
-  // Function to open edit modal
-  const openEditModal = (task: Task) => {
-    setEditingTask(task);
-    setIsEditModalOpen(true);
-  };
+  // Memoized team member map for efficient lookups
+  const teamMemberMap = React.useMemo(() => {
+    const map = new Map();
+    projectTasks.forEach(task => {
+      if (task.assignedTo && !map.has(task.assignedTo)) {
+        const member = getTeamMemberById(task.assignedTo);
+        if (member) {
+          map.set(task.assignedTo, member);
+        }
+      }
+    });
+    return map;
+  }, [projectTasks, getTeamMemberById]);
 
-  // Function to handle task status change
-  const handleStatusChange = (task: Task, newStatus: "todo" | "in_progress" | "completed") => {
-    const updatedTask: Task = {
-      ...task,
-      status: newStatus,
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => prev.map(t => t.id === task.id ? updatedTask : t));
-    console.log(`Task "${task.title}" status changed to:`, newStatus);
-  };
-
-  // Function to handle task creation
-  const handleCreateTask = (newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newTask: Task = {
-      ...newTaskData,
-      id: `t${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => [newTask, ...prev]);
-    console.log('Created new task:', newTask);
-  };
-
-  // Function to handle task update
-  const handleUpdateTask = (updatedTask: Task) => {
-    setData(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-    console.log('Updated task:', updatedTask);
-  };
-
-  // Function to handle task deletion
-  const handleDeleteTask = (task: Task) => {
-    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
-      setData(prev => prev.filter(t => t.id !== task.id));
-      console.log('Deleted task:', task.title);
-    }
-  };
-
-  // Function to handle task duplication
-  const handleDuplicateTask = (task: Task) => {
-    const duplicatedTask: Task = {
-      ...task,
-      id: `t${Date.now()}`,
-      title: `${task.title} (Copy)`,
-      status: "todo",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => [duplicatedTask, ...prev]);
-    console.log('Duplicated task:', duplicatedTask);
-  };
-
-  // Get unique assignees for filter
+  // Memoized unique assignees for filter
   const uniqueAssignees = React.useMemo(() => {
-    const assignees = data
+    const assignees = projectTasks
       .map(task => task.assignedTo)
       .filter((assignee): assignee is string => assignee !== undefined)
       .filter((assignee, index, array) => array.indexOf(assignee) === index);
     
     return assignees.map(assigneeId => {
-      const member = getTeamMemberById(assigneeId);
+      const member = teamMemberMap.get(assigneeId);
       return member ? { value: assigneeId, label: member.name } : null;
     }).filter((item): item is { value: string; label: string } => item !== null);
-  }, [data]);
+  }, [projectTasks, teamMemberMap]);
 
-  // Task statistics
+  // Memoized task statistics
   const taskStats = React.useMemo(() => {
-    const totalTasks = data.length;
-    const todoTasks = data.filter(t => t.status === "todo");
-    const inProgressTasks = data.filter(t => t.status === "in_progress");
-    const completedTasks = data.filter(t => t.status === "completed");
+    const totalTasks = projectTasks.length;
+    const todoTasks = projectTasks.filter(t => t.status === "todo");
+    const inProgressTasks = projectTasks.filter(t => t.status === "in_progress");
+    const completedTasks = projectTasks.filter(t => t.status === "completed");
     
     // Priority counts
-    const urgentTasks = data.filter(t => t.priority === "urgent");
-    const highPriorityTasks = data.filter(t => t.priority === "high");
+    const urgentTasks = projectTasks.filter(t => t.priority === "urgent");
+    const highPriorityTasks = projectTasks.filter(t => t.priority === "high");
     
     // Due date analysis
     const today = new Date();
-    const overdueTasks = data.filter(t => {
+    const overdueTasks = projectTasks.filter(t => {
       if (!t.dueDate || t.status === "completed") return false;
       return new Date(t.dueDate) < today;
     });
@@ -303,17 +439,18 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       overdueTasks: overdueTasks.length,
       completionRate
     };
-  }, [data]);
+  }, [projectTasks]);
 
-  // Filter and sort tasks
+  // Memoized filtered and sorted tasks
   const filteredAndSortedTasks = React.useMemo(() => {
-    let filtered = data;
+    let filtered = projectTasks;
 
     // Apply search filter
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(task =>
-        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+        task.title.toLowerCase().includes(searchLower) ||
+        (task.description?.toLowerCase().includes(searchLower) ?? false)
       );
     }
 
@@ -355,16 +492,55 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
     });
 
     return filtered;
-  }, [data, searchTerm, statusFilter, priorityFilter, assigneeFilter, sortBy]);
+  }, [projectTasks, searchTerm, statusFilter, priorityFilter, assigneeFilter, sortBy]);
 
-  const taskColumns: ColumnDef<Task>[] = [
+  // Action handlers
+  const openTaskSheet = React.useCallback((task: Task) => {
+    setSelectedTask(task);
+    setIsTaskSheetOpen(true);
+  }, []);
+
+  const openEditModal = React.useCallback((task: Task) => {
+    setEditingTask(task);
+    setIsEditModalOpen(true);
+  }, []);
+
+  const handleStatusChange = React.useCallback((task: Task, newStatus: Task['status']) => {
+    console.log(`Task "${task.title}" status changed to:`, newStatus);
+    // TODO: Update via hook when available
+  }, []);
+
+  const handleCreateTask = React.useCallback((newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    console.log('Created new task:', newTaskData);
+    // TODO: Create via hook when available
+  }, []);
+
+  const handleUpdateTask = React.useCallback((updatedTask: Task) => {
+    console.log('Updated task:', updatedTask);
+    // TODO: Update via hook when available
+  }, []);
+
+  const handleDeleteTask = React.useCallback((task: Task) => {
+    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
+      console.log('Deleted task:', task.title);
+      // TODO: Delete via hook when available
+    }
+  }, []);
+
+  const handleDuplicateTask = React.useCallback((task: Task) => {
+    console.log('Duplicated task:', task);
+    // TODO: Duplicate via hook when available
+  }, []);
+
+  // Memoized columns
+  const taskColumns: ColumnDef<Task>[] = React.useMemo(() => [
     {
       accessorKey: "priority",
       header: () => '',
       cell: ({ row }) => {
         const priority = row.getValue("priority") as string;
         return (
-        <div className={`p-2 rounded-md flex flex-col items-center ${getPriorityConfig(priority).bg}`}>
+          <div className={`p-2 rounded-md flex flex-col items-center ${getPriorityConfig(priority).bg}`}>
             {getPriorityIcon(priority)}
           </div>
         );
@@ -376,7 +552,6 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       header: "Task",
       cell: ({ row }) => {
         const task = row.original;
-        
         return (
           <div className="flex flex-col p-2">
             <Button 
@@ -411,8 +586,6 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       cell: ({ row }) => {
         const task = row.original;
         const commentsCount = task.comments?.length || 0;
-        
-        // For demo purposes, let's say there's a new comment if the task was updated in the last day
         const hasNewComment = new Date(task.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
         
         return (
@@ -423,7 +596,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
             onClick={() => openTaskSheet(task)}
           >
             <MessageCircle className="h-3 w-3" />
-            <p className="text-sx">{commentsCount} replies</p>
+            <p className="text-sx">{commentsCount} comments</p>
             {hasNewComment && commentsCount > 0 && (
               <Badge variant="destructive" className="text-xs px-1">
                 new
@@ -443,7 +616,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
           return <div className="text-muted-foreground">Unassigned</div>;
         }
         
-        const member = getTeamMemberById(assignedTo);
+        const member = teamMemberMap.get(assignedTo);
         if (!member) {
           return <div className="text-muted-foreground">Unknown</div>;
         }
@@ -453,7 +626,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
             <Avatar className="h-6 w-6 border border-background">
               <AvatarImage src={member.avatarUrl} />
               <AvatarFallback className="text-xs">
-                {member.name.split(" ").map(n => n[0]).join("")}
+                {member.name.split(" ").map((n: string) => n[0]).join("")}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
@@ -469,8 +642,6 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       cell: ({ row }) => {
         const task = row.original;
         const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-        const today = new Date();
-
         
         return (
           <div className="flex flex-col">
@@ -489,7 +660,6 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       header: "Last updated",
       cell: ({ row }) => {
         const updatedAt = row.getValue("updatedAt") as string;
-        
         return (
           <div className="flex flex-col">
             <div className="text-xs">{formatRelativeTime(updatedAt)}</div>
@@ -502,79 +672,33 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
       enableHiding: false,
       cell: ({ row }) => {
         const task = row.original;
-
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => openTaskSheet(task)}>
-                <Eye className="h-4 w-4" />
-                Task details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => openEditModal(task)}>
-                <Edit className="h-4 w-4" />
-                Edit task
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {task.status !== "completed" && (
-                <DropdownMenuItem onClick={() => handleStatusChange(task, "completed")}>
-                  <CheckSquare className="h-4 w-4" />
-                  Mark completed
-                </DropdownMenuItem>
-              )}
-              {task.status !== "in_progress" && (
-                <DropdownMenuItem onClick={() => handleStatusChange(task, "in_progress")}>
-                  <ArrowRight className="h-4 w-4" />
-                  Mark in progress
-                </DropdownMenuItem>
-              )}
-              {task.status !== "todo" && (
-                <DropdownMenuItem onClick={() => handleStatusChange(task, "todo")}>
-                  <Circle className="h-4 w-4" />
-                  Mark to do
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleDuplicateTask(task)}>
-                <Copy className="h-4 w-4" />
-                Duplicate task
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteTask(task)}>
-                <Trash2 className="h-4 w-4 text-red-500" />
-                Delete task
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <TaskActionsDropdown
+            task={task}
+            onViewTask={openTaskSheet}
+            onEditTask={openEditModal}
+            onStatusChange={handleStatusChange}
+            onDuplicate={handleDuplicateTask}
+            onDelete={handleDeleteTask}
+          />
         );
       },
     },
-  ];
+  ], [teamMemberMap, openTaskSheet, openEditModal, handleStatusChange, handleDuplicateTask, handleDeleteTask]);
 
   const table = useReactTable({
     data: filteredAndSortedTasks,
     columns: taskColumns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     getRowId: (row) => row.id,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-    },
   });
+
+  if (!project) {
+    return null;
+  }
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -597,7 +721,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Task Progress</CardTitle>
             <div className="p-2 rounded-md bg-secondary">
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <Target className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
@@ -625,7 +749,7 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">High Priority</CardTitle>
             <div className="p-2 rounded-md bg-secondary"> 
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <AlertTriangle className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
@@ -639,8 +763,8 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
             <div className="p-2 rounded-md bg-secondary"> 
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              </div>
+              <Calendar className="h-4 w-4 text-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{taskStats.overdueTasks}</div>
@@ -749,7 +873,6 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         </div>
       </div>
 
-      
       {/* Conditional rendering based on view mode */}
       {viewMode === 'list' ? (
         <div className="overflow-hidden rounded-xl border">
@@ -804,171 +927,19 @@ export function ProjectTasksList({ project, tasks: externalTasks }: ProjectTasks
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedTasks.length > 0 ? (
             filteredAndSortedTasks.map((task) => {
-              const assignee = task.assignedTo ? getTeamMemberById(task.assignedTo) : null;
-              const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-              const today = new Date();
-              const isOverdue = dueDate && dueDate < today && task.status !== "completed";
-              const isDueSoon = dueDate && dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !isOverdue && task.status !== "completed";
-              const commentsCount = task.comments?.length || 0;
-              const hasNewComment = new Date(task.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+              const assignee = task.assignedTo ? teamMemberMap.get(task.assignedTo) : null;
               
               return (
-                <Card key={task.id} className="group justify-between hover:shadow-sm transition-all duration-200">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className={`p-2 rounded-md ${getPriorityConfig(task.priority).bg}`}>
-                              {getPriorityIcon(task.priority)}
-                            </div>
-                            <Button 
-                              variant="link" 
-                              className="p-0 h-auto text-left justify-start"
-                              onClick={() => openTaskSheet(task)}
-                            >
-                              <CardTitle className="text-lg hover:text-primary transition-colors">
-                                {task.title}
-                              </CardTitle>
-                            </Button>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openTaskSheet(task)}>
-                                <Eye className="h-4 w-4" />
-                                Task details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditModal(task)}>
-                                <Edit className="h-4 w-4" />
-                                Edit task
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {task.status !== "completed" && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(task, "completed")}>
-                                  <CheckSquare className="h-4 w-4" />
-                                  Mark completed
-                                </DropdownMenuItem>
-                              )}
-                              {task.status !== "in_progress" && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(task, "in_progress")}>
-                                  <ArrowRight className="h-4 w-4" />
-                                  Mark in progress
-                                </DropdownMenuItem>
-                              )}
-                              {task.status !== "todo" && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(task, "todo")}>
-                                  <Circle className="h-4 w-4" />
-                                  Mark to do
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDuplicateTask(task)}>
-                                <Copy className="h-4 w-4" />
-                                Duplicate task
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteTask(task)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                        {isOverdue && (
-                          <Badge variant="destructive" className="text-xs">
-                            Overdue
-                          </Badge>
-                        )}
-                        {isDueSoon && !isOverdue && (
-                          <Badge variant="outline" className="text-xs text-orange-600 border-orange-600">
-                            Due Soon
-                          </Badge>
-                        )}
-                          <Badge className={getStatusColor(task.status)}>
-                            {task.status.replace("_", " ")}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-6 line-clamp-2">
-                          {task.description || "No description"}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex flex-col justify-between gap-2">
-                      {/* Due Date */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <div className="text-sm">
-                          Task due on {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
-                        </div>
-                        </div>
-                      <div className="flex items-center">
-                          <Button 
-                            variant="ghost" 
-                            size="xs"
-                            className="flex items-center space-x-1 hover:bg-muted p-1 h-auto"
-                            onClick={() => openTaskSheet(task)}
-                          >
-                            <MessageCircle className="h-3 w-3" />
-                            <span className="text-xs">{commentsCount}</span>
-                            {hasNewComment && commentsCount > 0 && (
-                              <Badge variant="destructive" className="text-xs px-1 ml-1">
-                                new
-                              </Badge>
-                            )}
-                          </Button>
-                      </div>
-                      </div>
-
-                      {/* Meta Information */}
-                      <div className="space-y-2 border-t pt-3">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                          <div className="flex items-center gap-2">
-                            {assignee ? (
-                              <div className="flex items-center space-x-2">
-                                <Avatar className="h-6 w-6 border border-background">
-                                  <AvatarImage src={assignee.avatarUrl} />
-                                  <AvatarFallback className="text-xs">
-                                    {assignee.name.split(" ").map(n => n[0]).join("")}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="text-sm text-muted-foreground">
-                                  {assignee.name}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="text-sm text-muted-foreground">Unassigned</div>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="text-muted-foreground">
-                              {formatRelativeTime(task.updatedAt)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Open Task Button */}
-                      <Button 
-                        variant="default"
-                        className="w-full" 
-                        onClick={() => openTaskSheet(task)}
-                      >
-                        View Task
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  assignee={assignee}
+                  onViewTask={openTaskSheet}
+                  onEditTask={openEditModal}
+                  onStatusChange={handleStatusChange}
+                  onDuplicate={handleDuplicateTask}
+                  onDelete={handleDeleteTask}
+                />
               );
             })
           ) : (

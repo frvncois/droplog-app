@@ -1,19 +1,15 @@
-// components/projects/project-assets-list.tsx
+// components/project/project-assets-list.tsx
 
 "use client";
 
 import * as React from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  SortingState,
   useReactTable,
-  VisibilityState,
 } from "@tanstack/react-table";
 import { 
   Upload,
@@ -25,18 +21,15 @@ import {
   SortAsc,
   Grid,
   List,
-  Info,
   Plus,
   Edit,
   Trash2,
   Share,
-  FolderOpen,
   FileImage,
   FileText,
   Video,
   File,
   User,
-  Calendar,
   HardDrive,
   Image,
   FileX
@@ -70,13 +63,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Project,
-  Asset,
-  getAssetsByProjectId,
-  getTeamMemberById 
-} from "@/lib/utils/dummy-data";
-import { format } from "date-fns";
+import { Project, Asset } from "@/lib/types";
+import { useAssets } from "@/hooks/use-assets";
+import { useTeam } from "@/hooks/use-team";
 import { formatRelativeTime } from "@/lib/utils";
 import { AssetSheetModal } from "@/components/modals/asset-sheet-modal";
 import { AssetCreateModal } from "@/components/modals/asset-create-modal";
@@ -118,7 +107,6 @@ const formatFileSize = (bytes: number) => {
   return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 };
 
-// Type filter options
 const typeOptions = [
   { value: "all", label: "All Types" },
   { value: "image", label: "Images" },
@@ -129,7 +117,6 @@ const typeOptions = [
   { value: "other", label: "Other" },
 ];
 
-// Sort options
 const sortOptions = [
   { value: "updatedAt", label: "Last Updated" },
   { value: "createdAt", label: "Created Date" },
@@ -139,119 +126,63 @@ const sortOptions = [
 ];
 
 interface ProjectAssetsListProps {
-  project: Project;
-  assets?: Asset[];
+  project?: Project;
 }
 
-export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAssetsListProps) {
-  const originalAssets = React.useMemo(() => getAssetsByProjectId(project.id), [project.id]);
-  const [data, setData] = React.useState(() => externalAssets || originalAssets);
+export function ProjectAssetsList({ project }: ProjectAssetsListProps) {
+  const { assets } = useAssets(project ? { projectId: project.id } : {});
+  const { getTeamMemberById } = useTeam();
 
-  // Update data when external assets change
-  React.useEffect(() => {
-    if (externalAssets) {
-      setData(externalAssets);
-    } else {
-      setData(originalAssets);
-    }
-  }, [externalAssets, originalAssets]);
-
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  
-  // Filter states
   const [searchTerm, setSearchTerm] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState("all");
   const [assigneeFilter, setAssigneeFilter] = React.useState("all");
   const [sortBy, setSortBy] = React.useState("updatedAt");
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
-  // Modal states
   const [selectedAsset, setSelectedAsset] = React.useState<Asset | null>(null);
   const [isAssetSheetOpen, setIsAssetSheetOpen] = React.useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [editingAsset, setEditingAsset] = React.useState<Asset | null>(null);
 
-  // Function to open asset sheet modal
-  const openAssetSheet = (asset: Asset) => {
-    setSelectedAsset(asset);
-    setIsAssetSheetOpen(true);
-  };
+  const projectAssets = React.useMemo(() => {
+    if (!project) return [];
+    return assets.filter(asset => asset.projectId === project.id);
+  }, [assets, project]);
 
-  // Function to open edit modal
-  const openEditModal = (asset: Asset) => {
-    setEditingAsset(asset);
-    setIsEditModalOpen(true);
-  };
+  const teamMemberMap = React.useMemo(() => {
+    const map = new Map();
+    projectAssets.forEach(asset => {
+      if (asset.addedBy && !map.has(asset.addedBy)) {
+        const member = getTeamMemberById(asset.addedBy);
+        if (member) {
+          map.set(asset.addedBy, member);
+        }
+      }
+    });
+    return map;
+  }, [projectAssets, getTeamMemberById]);
 
-  // Function to handle asset creation
-  const handleCreateAsset = (newAssetData: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newAsset: Asset = {
-      ...newAssetData,
-      id: `a${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => [newAsset, ...prev]);
-    console.log('Created new asset:', newAsset);
-  };
-
-  // Function to handle asset update
-  const handleUpdateAsset = (updatedAsset: Asset) => {
-    setData(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
-    console.log('Updated asset:', updatedAsset);
-  };
-
-  // Function to handle asset deletion
-  const handleDeleteAsset = (asset: Asset) => {
-    if (confirm(`Are you sure you want to delete "${asset.title}"?`)) {
-      setData(prev => prev.filter(a => a.id !== asset.id));
-      console.log('Deleted asset:', asset.title);
-    }
-  };
-
-  // Function to handle asset duplication
-  const handleDuplicateAsset = (asset: Asset) => {
-    const duplicatedAsset: Asset = {
-      ...asset,
-      id: `a${Date.now()}`,
-      title: `${asset.title} (Copy)`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setData(prev => [duplicatedAsset, ...prev]);
-    console.log('Duplicated asset:', duplicatedAsset);
-  };
-
-  // Get unique assignees for filter
   const uniqueAssignees = React.useMemo(() => {
-    const assignees = data
+    const assignees = projectAssets
       .map(asset => asset.addedBy)
       .filter((assignee): assignee is string => assignee !== undefined)
       .filter((assignee, index, array) => array.indexOf(assignee) === index);
     
     return assignees.map(assigneeId => {
-      const member = getTeamMemberById(assigneeId);
+      const member = teamMemberMap.get(assigneeId);
       return member ? { value: assigneeId, label: member.name } : null;
     }).filter((item): item is { value: string; label: string } => item !== null);
-  }, [data]);
+  }, [projectAssets, teamMemberMap]);
 
-  // Asset statistics
   const assetStats = React.useMemo(() => {
-    const totalAssets = data.length;
-    const totalSize = data.reduce((sum, asset) => sum + (asset.fileSize || 0), 0);
-    const imageCount = data.filter(a => a.type === "image").length;
-    const videoCount = data.filter(a => a.type === "video").length;
-    const documentCount = data.filter(a => a.type === "document" || a.type === "pdf").length;
-    const audioCount = data.filter(a => a.type === "audio").length;
-    const otherCount = data.filter(a => a.type === "other").length;
-    
-    // Recent activity (uploaded in last 7 days)
-    const recentAssets = data.filter(asset => {
+    const totalAssets = projectAssets.length;
+    const totalSize = projectAssets.reduce((sum, asset) => sum + (asset.fileSize || asset.size || 0), 0);
+    const imageCount = projectAssets.filter(a => a.type === "image").length;
+    const videoCount = projectAssets.filter(a => a.type === "video").length;
+    const documentCount = projectAssets.filter(a => a.type === "document" || a.type === "pdf").length;
+    const audioCount = projectAssets.filter(a => a.type === "audio").length;
+    const recentAssets = projectAssets.filter(asset => {
       const createdDate = new Date(asset.createdAt);
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       return createdDate > weekAgo;
@@ -264,35 +195,31 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
       videoCount,
       documentCount,
       audioCount,
-      otherCount,
       recentCount: recentAssets.length
     };
-  }, [data]);
+  }, [projectAssets]);
 
-  // Filter and sort assets
   const filteredAndSortedAssets = React.useMemo(() => {
-    let filtered = data;
+    let filtered = projectAssets;
 
-    // Apply search filter
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(asset =>
-        asset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (asset.filename?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-        (asset.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+        asset.title.toLowerCase().includes(searchLower) ||
+        (asset.filename?.toLowerCase().includes(searchLower) ?? false) ||
+        (asset.fileName?.toLowerCase().includes(searchLower) ?? false) ||
+        (asset.description?.toLowerCase().includes(searchLower) ?? false)
       );
     }
 
-    // Apply type filter
     if (typeFilter !== "all") {
       filtered = filtered.filter(asset => asset.type === typeFilter);
     }
 
-    // Apply assignee filter
     if (assigneeFilter !== "all") {
       filtered = filtered.filter(asset => asset.addedBy === assigneeFilter);
     }
 
-    // Apply sorting
     filtered = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "title":
@@ -302,7 +229,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
         case "updatedAt":
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         case "fileSize":
-          return (b.fileSize || 0) - (a.fileSize || 0);
+          return (b.fileSize || b.size || 0) - (a.fileSize || a.size || 0);
         case "type":
           return a.type.localeCompare(b.type);
         default:
@@ -311,16 +238,44 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
     });
 
     return filtered;
-  }, [data, searchTerm, typeFilter, assigneeFilter, sortBy]);
+  }, [projectAssets, searchTerm, typeFilter, assigneeFilter, sortBy]);
 
-  const assetColumns: ColumnDef<Asset>[] = [
+  const openAssetSheet = React.useCallback((asset: Asset) => {
+    setSelectedAsset(asset);
+    setIsAssetSheetOpen(true);
+  }, []);
+
+  const openEditModal = React.useCallback((asset: Asset) => {
+    setEditingAsset(asset);
+    setIsEditModalOpen(true);
+  }, []);
+
+  const handleCreateAsset = React.useCallback((newAssetData: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>) => {
+    console.log('Created new asset:', newAssetData);
+  }, []);
+
+  const handleUpdateAsset = React.useCallback((updatedAsset: Asset) => {
+    console.log('Updated asset:', updatedAsset);
+  }, []);
+
+  const handleDeleteAsset = React.useCallback((asset: Asset) => {
+    if (confirm(`Are you sure you want to delete "${asset.title}"?`)) {
+      console.log('Deleted asset:', asset.title);
+    }
+  }, []);
+
+  const handleDuplicateAsset = React.useCallback((asset: Asset) => {
+    console.log('Duplicated asset:', asset);
+  }, []);
+
+  const assetColumns: ColumnDef<Asset>[] = React.useMemo(() => [
     {
       id: "typeIcon",
       header: () => '',
       cell: ({ row }) => {
         const type = row.original.type;
         return (
-          <div className="p-2 rounded-md flex items-center justify-center bg-muted">
+          <div className={`p-2 rounded-md flex flex-col items-center ${getTypeColor(type)}`}>
             {getTypeIcon(type)}
           </div>
         );
@@ -333,7 +288,6 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
       header: "Asset",
       cell: ({ row }) => {
         const asset = row.original;
-        
         return (
           <div className="flex flex-col p-2">
             <Button 
@@ -344,7 +298,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
               {asset.title}
             </Button>
             <div className="text-xs text-muted-foreground line-clamp-1">
-              {asset.filename || asset.description || "No description"}
+              {asset.filename || asset.fileName || asset.description || "No description"}
             </div>
           </div>
         );
@@ -366,11 +320,12 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
       accessorKey: "fileSize",
       header: "Size",
       cell: ({ row }) => {
-        const fileSize = row.getValue("fileSize") as number;
+        const asset = row.original;
+        const fileSize = asset.fileSize || asset.size || 0;
         return (
           <div className="flex items-center gap-1">
             <HardDrive className="h-3 w-3 text-muted-foreground" />
-            <span className="text-sm">
+            <span className="text-xs">
               {fileSize ? formatFileSize(fileSize) : "Unknown"}
             </span>
           </div>
@@ -387,7 +342,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
           return <div className="text-muted-foreground">Unknown</div>;
         }
         
-        const member = getTeamMemberById(addedBy);
+        const member = teamMemberMap.get(addedBy);
         if (!member) {
           return <div className="text-muted-foreground">Unknown</div>;
         }
@@ -397,12 +352,10 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
             <Avatar className="h-6 w-6 border border-background">
               <AvatarImage src={member.avatarUrl} />
               <AvatarFallback className="text-xs">
-                {member.name.split(" ").map(n => n[0]).join("")}
+                {member.name.split(" ").map((n: string) => n[0]).join("")}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <div className="text-xs">{member.name}</div>
-            </div>
+            <div className="text-xs">{member.name}</div>
           </div>
         );
       },
@@ -412,12 +365,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
       header: "Last updated",
       cell: ({ row }) => {
         const updatedAt = row.getValue("updatedAt") as string;
-        
-        return (
-          <div className="flex flex-col">
-            <div className="text-xs">{formatRelativeTime(updatedAt)}</div>
-          </div>
-        );
+        return <div className="text-xs">{formatRelativeTime(updatedAt)}</div>;
       },
     },
     {
@@ -425,12 +373,10 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
       enableHiding: false,
       cell: ({ row }) => {
         const asset = row.original;
-
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -452,64 +398,49 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleDuplicateAsset(asset)}>
                 <FileX className="h-4 w-4" />
-                Duplicate asset
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('Share asset:', asset.title)}>
-                <Share className="h-4 w-4" />
-                Share asset
+                Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteAsset(asset)}>
                 <Trash2 className="h-4 w-4 text-red-500" />
-                Delete asset
+                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
       },
     },
-  ];
+  ], [teamMemberMap, openAssetSheet, openEditModal, handleDuplicateAsset, handleDeleteAsset]);
 
   const table = useReactTable({
     data: filteredAndSortedAssets,
     columns: assetColumns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     getRowId: (row) => row.id,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-    },
   });
+
+  if (!project) {
+    return null;
+  }
 
   return (
     <div className="w-full flex flex-col gap-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-medium tracking-tight">Assets</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Asset
-          </Button>
-        </div>
+        <h2 className="text-2xl font-medium tracking-tight">Assets</h2>
+        <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Asset
+        </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
             <div className="p-2 rounded-md bg-secondary">
-              <File className="h-4 w-4 text-muted-foreground" />
+              <File className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
@@ -523,49 +454,45 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Images</CardTitle>
             <div className="p-2 rounded-md bg-secondary">
-              <Image className="h-4 w-4 text-muted-foreground" />
+              <Image className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{assetStats.imageCount}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground">
               {assetStats.videoCount} videos
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Documents</CardTitle>
-            <div className="p-2 rounded-md bg-secondary"> 
-              <FileText className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary">
+              <FileText className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{assetStats.documentCount}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground">
               {assetStats.audioCount} audio files
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Recent</CardTitle>
-            <div className="p-2 rounded-md bg-secondary"> 
-              <Upload className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-md bg-secondary">
+              <Upload className="h-4 w-4 text-foreground" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{assetStats.recentCount}</div>
-            <p className="text-xs text-muted-foreground">
-              This week
-            </p>
+            <p className="text-xs text-muted-foreground">This week</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
@@ -576,9 +503,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
           />
         </div>
 
-        {/* Filters */}
         <div className="flex items-center gap-4">
-          {/* Type Filter */}
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-[200px]">
               <Filter className="h-4 w-4 mr-2" />
@@ -593,7 +518,6 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
             </SelectContent>
           </Select>
 
-          {/* Assignee Filter */}
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
             <SelectTrigger className="w-[200px]">
               <User className="h-4 w-4 mr-2" />
@@ -609,7 +533,6 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
             </SelectContent>
           </Select>
 
-          {/* Sort */}
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[200px]">
               <SortAsc className="h-4 w-4 mr-2" />
@@ -624,7 +547,6 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
             </SelectContent>
           </Select>
 
-          {/* View Mode Toggle */}
           <div className="flex border rounded-md">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -646,36 +568,26 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
         </div>
       </div>
 
-      {/* Conditional rendering based on view mode */}
       {viewMode === 'list' ? (
         <div className="overflow-hidden rounded-xl border">
           <Table>
             <TableHeader className="bg-muted sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id} colSpan={header.colSpan}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
                 </TableRow>
               ))}
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="hover:bg-muted/50"
-                  >
+                  <TableRow key={row.id} className="hover:bg-muted/50">
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -685,10 +597,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={assetColumns.length}
-                    className="h-24 text-center"
-                  >
+                  <TableCell colSpan={assetColumns.length} className="h-24 text-center">
                     No assets found.
                   </TableCell>
                 </TableRow>
@@ -700,7 +609,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedAssets.length > 0 ? (
             filteredAndSortedAssets.map((asset) => {
-              const addedBy = asset.addedBy ? getTeamMemberById(asset.addedBy) : null;
+              const addedBy = asset.addedBy ? teamMemberMap.get(asset.addedBy) : null;
               
               return (
                 <Card key={asset.id} className="group hover:shadow-sm transition-all duration-200">
@@ -722,39 +631,6 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
                               </CardTitle>
                             </Button>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openAssetSheet(asset)}>
-                                <Eye className="h-4 w-4" />
-                                Asset details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditModal(asset)}>
-                                <Edit className="h-4 w-4" />
-                                Edit asset
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => console.log('Download asset:', asset.title)}>
-                                <Download className="h-4 w-4" />
-                                Download
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDuplicateAsset(asset)}>
-                                <FileX className="h-4 w-4" />
-                                Duplicate
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteAsset(asset)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </div>
                         <div className="mt-2">
                           <Badge className={getTypeColor(asset.type)}>
@@ -762,55 +638,46 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-6 line-clamp-2">
-                          {asset.description || asset.filename || "No description"}
+                          {asset.description || asset.fileName || asset.filename || "No description"}
                         </p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="flex flex-col justify-between gap-2">
-                      {/* File Size */}
-                      <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <HardDrive className="h-4 w-4 text-muted-foreground" />
+                        <div className="text-sm text-muted-foreground">
+                          {asset.fileSize || asset.size ? formatFileSize(asset.fileSize || asset.size || 0) : "Unknown size"}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t">
                         <div className="flex items-center gap-2">
-                          <HardDrive className="h-4 w-4 text-muted-foreground" />
-                          <div className="text-sm text-muted-foreground">
-                            {asset.fileSize ? formatFileSize(asset.fileSize) : "Unknown size"}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Meta Information */}
-                      <div className="space-y-2 border-t pt-3">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                          <div className="flex items-center gap-2">
-                            {addedBy ? (
-                              <div className="flex items-center space-x-2">
-                                <Avatar className="h-6 w-6 border border-background">
-                                  <AvatarImage src={addedBy.avatarUrl} />
-                                  <AvatarFallback className="text-xs">
-                                    {addedBy.name.split(" ").map(n => n[0]).join("")}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="text-sm text-muted-foreground">
-                                  {addedBy.name}
-                                </div>
+                          {addedBy ? (
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-6 w-6 border border-background">
+                                <AvatarImage src={addedBy.avatarUrl} />
+                                <AvatarFallback className="text-xs">
+                                  {addedBy.name.split(" ").map((n: string) => n[0]).join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="text-sm text-muted-foreground">
+                                {addedBy.name}
                               </div>
-                            ) : (
-                              <div className="text-sm text-muted-foreground">Unknown</div>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="text-muted-foreground">
-                              {formatRelativeTime(asset.updatedAt)}
                             </div>
-                          </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">Unknown</div>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatRelativeTime(asset.updatedAt)}
                         </div>
                       </div>
 
-                      {/* Open Asset Button */}
                       <Button 
                         variant="default"
-                        className="w-full" 
+                        className="w-full mt-2" 
                         onClick={() => openAssetSheet(asset)}
                       >
                         View Asset
@@ -821,7 +688,7 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
               );
             })
           ) : (
-            <div className="col-span-full text-sm flex items-center border rounded-xl justify-center h-50 bg-card text-muted-foreground">
+            <div className="col-span-full text-center py-8 text-muted-foreground">
               <p>No assets found.</p>
             </div>
           )}
@@ -852,14 +719,12 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
         </div>
       </div>
 
-      {/* Asset Sheet Modal */}
       <AssetSheetModal
         asset={selectedAsset}
         open={isAssetSheetOpen}
         onOpenChange={setIsAssetSheetOpen}
       />
 
-      {/* Asset Create Modal */}
       <AssetCreateModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
@@ -867,7 +732,6 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
         onCreateAsset={handleCreateAsset}
       />
 
-      {/* Asset Edit Modal */}
       <AssetEditModal
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
@@ -876,4 +740,4 @@ export function ProjectAssetsList({ project, assets: externalAssets }: ProjectAs
       />
     </div>
   );
-} 
+}

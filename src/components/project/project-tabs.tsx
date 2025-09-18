@@ -1,4 +1,6 @@
+// components/project/project-tabs.tsx
 "use client";
+
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -31,15 +33,19 @@ import {
   Settings,
   LayoutDashboard
 } from "lucide-react";
-import { Project } from "@/lib/utils/dummy-data";
+import { Project } from "@/lib/types";
 
 interface ProjectTabsProps {
-  project: Project;
+  project?: Project;
   currentUserId?: string;
 }
 
 export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps) {
   const [activeTab, setActiveTab] = useState("overview");
+
+  if (!project) {
+    return null;
+  }
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -124,6 +130,13 @@ export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps)
         <ProjectOverview project={project} />
       </TabsContent>
 
+      <TabsContent value="timeline">
+        <ProjectTimeline
+          project={project}
+          currentUserId={currentUserId}
+        />
+      </TabsContent>
+
       <TabsContent value="tasks">
         <ProjectTasksList project={project} />
       </TabsContent>
@@ -136,20 +149,14 @@ export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps)
         <ProjectContentList project={project} />
       </TabsContent>
 
-      <TabsContent value="team">
-        <ProjectTeamList project={project} />
-      </TabsContent>
-
       <TabsContent value="documentation">
         <ProjectDocumentation project={project} />
       </TabsContent>
 
-      <TabsContent value="timeline">
-        <ProjectTimeline
-          project={project}
-          currentUserId={currentUserId}
-        />
+      <TabsContent value="team">
+        <ProjectTeamList project={project} />
       </TabsContent>
+
 
       <TabsContent value="settings">
         <ProjectSettings project={project} />

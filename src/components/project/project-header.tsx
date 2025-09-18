@@ -1,3 +1,4 @@
+// components/project/project-header.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -5,46 +6,45 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  MoreHorizontal, 
-  Settings, 
+import {
+  Settings,
   Share,
   Plus,
-  Archive,
-  Users,
+  Calendar,
+  FileImage,
+  FileText,
 } from "lucide-react";
-import { 
-  Project, 
-} from "@/lib/utils/dummy-data";
+import { Project } from "@/lib/types";
 
 interface ProjectHeaderProps {
-  project: Project;
+  project?: Project;
 }
 
 export function ProjectHeader({ project }: ProjectHeaderProps) {
+  if (!project) {
+    return null;
+  }
 
   return (
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center">
-              <h1 className="text-3xl font-semibold tracking-tight">{project.title}</h1>
-            </div>
-            <p className="text-muted-foreground text-sm">
-              {project.description || "No description available for this project."}
-            </p>
-          </div>
-          <div>
-          <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <div className="flex items-center">
+          <h1 className="text-3xl font-semibold tracking-tight">{project.title}</h1>
+        </div>
+        <p className="text-muted-foreground text-sm">
+          {project.description || "No description available for this project."}
+        </p>
+      </div>
+      <div>
+        <div className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Quick add
-            </Button>
+              <Button variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Quick add
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
@@ -52,25 +52,25 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
                 Create task
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
+                <Calendar className="mr-2 h-4 w-4" />
                 Create event
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
+                <FileImage className="mr-2 h-4 w-4" />
                 Add asset
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 Add content
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-            <Button variant="default" size="sm">
-              <Share className="h-4 w-4 mr-2" />
-              Editor
-            </Button>
+          <Button variant="default" size="sm">
+            <Share className="h-4 w-4 mr-2" />
+            Editor
+          </Button>
         </div>
-          </div>
-        </div>
+      </div>
+    </div>
   );
 }

@@ -80,12 +80,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Project,
-  projects as originalProjects,
-  getTasksByProjectId,
-  getTeamMemberById 
-} from "@/lib/utils/dummy-data";
+import { Project } from "@/lib/types";
+import { useTasks } from "@/hooks/use-tasks";
+import { useTeam } from "@/hooks/use-team";
 import { formatRelativeTime } from "@/lib/utils";
 import { ProjectOverviewModal } from "@/components/modals/project-overview-modal";
 
@@ -97,6 +94,8 @@ const getStatusColor = (status: string) => {
       return "bg-blue-100 text-blue-800";
     case "archived":
       return "bg-gray-100 text-gray-800";
+    case "on_hold":
+      return "bg-yellow-100 text-yellow-800";
     default:
       return "bg-gray-100 text-gray-800";
   }
@@ -108,7 +107,7 @@ const statusOptions = [
   { value: "active", label: "Active" },
   { value: "completed", label: "Completed" },
   { value: "archived", label: "Archived" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "on_hold", label: "On Hold" },
 ];
 
 // Sort options
@@ -164,18 +163,16 @@ function DraggableRow({ row }: { row: Row<Project> }) {
 }
 
 interface ProjectsDataTableProps {
-  projects?: Project[];
+  projects: Project[];
 }
 
-export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTableProps = {}) {
-  const [data, setData] = React.useState(() => externalProjects || originalProjects);
-
-  // Update data when external projects change
+export function ProjectsDataTable({ projects }: ProjectsDataTableProps) {
+  const [data, setData] = React.useState(() => projects);
+  
   React.useEffect(() => {
-    if (externalProjects) {
-      setData(externalProjects);
-    }
-  }, [externalProjects]);
+    setData(projects);
+  }, [projects]);
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -189,6 +186,10 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
   // Project Overview Modal state
   const [selectedProject, setSelectedProject] = React.useState<Project | null>(null);
   const [isOverviewModalOpen, setIsOverviewModalOpen] = React.useState(false);
+
+  // Hooks for data
+  const { tasks } = useTasks();
+  const { team, getTeamMemberById } = useTeam();
 
   // Drag and drop setup
   const sortableId = React.useId();
@@ -222,15 +223,33 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
     setIsOverviewModalOpen(true);
   };
 
-  // Filter and sort projects
+  // Memoize project tasks calculation
+  const projectTasksMap = React.useMemo(() => {
+    const map = new Map<string, { total: number; active: number }>();
+    
+    data.forEach(project => {
+      const projectTasks = tasks.filter(task => task.projectId === project.id);
+      const activeTasks = projectTasks.filter(task => task.status !== "completed");
+      
+      map.set(project.id, {
+        total: projectTasks.length,
+        active: activeTasks.length
+      });
+    });
+    
+    return map;
+  }, [data, tasks]);
+
+  // Filter and sort projects (optimized)
   const filteredAndSortedProjects = React.useMemo(() => {
     let filtered = data;
 
     // Apply search filter
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(project =>
-        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+        project.title.toLowerCase().includes(searchLower) ||
+        (project.description?.toLowerCase().includes(searchLower) ?? false)
       );
     }
 
@@ -258,7 +277,7 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
     return filtered;
   }, [data, searchTerm, statusFilter, sortBy]);
 
-  const projectColumns: ColumnDef<Project>[] = [
+  const projectColumns: ColumnDef<Project>[] = React.useMemo(() => [
     {
       id: "drag",
       header: () => null,
@@ -343,15 +362,14 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
       header: "Tasks",
       cell: ({ row }) => {
         const project = row.original;
-        const projectTasks = getTasksByProjectId(project.id);
-        const activeTasks = projectTasks.filter(t => t.status !== "completed");
+        const taskCounts = projectTasksMap.get(project.id) || { total: 0, active: 0 };
         
         return (
           <div className="flex flex-col">
             <div className="font-medium">
-              {activeTasks.length} active
+              {taskCounts.active} active
             </div>
-            <div className="text-muted-foreground">{projectTasks.length} total</div>
+            <div className="text-muted-foreground">{taskCounts.total} total</div>
           </div>
         );
       },
@@ -411,7 +429,7 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
         );
       },
     },
-  ];
+  ], [projectTasksMap, getTeamMemberById]);
 
   const table = useReactTable({
     data: filteredAndSortedProjects,
@@ -557,8 +575,7 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedProjects.length > 0 ? (
             filteredAndSortedProjects.map((project) => {
-              const projectTasks = getTasksByProjectId(project.id);
-              const activeTasks = projectTasks.filter(t => t.status !== "completed");
+              const taskCounts = projectTasksMap.get(project.id) || { total: 0, active: 0 };
               
               return (
                 <Card key={project.id} className="group justify-between">
@@ -648,7 +665,7 @@ export function ProjectsDataTable({ projects: externalProjects }: ProjectsDataTa
                       {/* Tasks Info */}
                       <div className="flex items-center justify-between text-sm">
                         <div className="text-muted-foreground">
-                          {projectTasks.length} tasks, {activeTasks.length} active
+                          {taskCounts.total} tasks, {taskCounts.active} active
                         </div>
                         <div className="text-muted-foreground">
                           {formatRelativeTime(project.updatedAt)}

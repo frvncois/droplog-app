@@ -26,10 +26,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Project,
-  Task
-} from "@/lib/utils/dummy-data";
-import { 
   format, 
   startOfWeek, 
   endOfWeek, 
@@ -49,9 +45,17 @@ import {
 } from "date-fns";
 import { cn } from "@/lib/utils";
 
+// Import standardized hooks and types
+import { useTasks } from "@/hooks/use-tasks";
+import { useTeam } from "@/hooks/use-team";
+import type { 
+  Project, 
+  Task,
+  TeamMember
+} from "@/lib/types";
+
 import { EventViewModal } from "@/components/modals/event-view-modal";
 import { EventCreateModal } from "@/components/modals/event-create-modal";
-import { tasks as allTasks } from "@/lib/utils/dummy-data";
 
 interface TimelineEvent {
   id: string;
@@ -79,8 +83,6 @@ interface TimelineEvent {
 // Props interface
 interface ProjectTimelineProps {
   project: Project;
-  tasks?: Task[];
-  events?: TimelineEvent[];
   currentUserId?: string;
 }
 
@@ -186,8 +188,8 @@ const getPriorityColor = (priority: string) => {
 // Enhanced task to timeline event conversion
 const tasksToTimelineEvents = (tasks: Task[]): TimelineEvent[] => {
   return tasks
-    .filter(task => task.dueDate) // Only include tasks with due dates
-    .map(task => {
+    .filter((task: Task) => task.dueDate) // Only include tasks with due dates
+    .map((task: Task) => {
       const today = startOfDay(new Date());
       const dueDate = startOfDay(parseISO(task.dueDate!));
       const isOverdue = isBefore(dueDate, today) && task.status !== 'completed';
@@ -245,10 +247,12 @@ const tasksToTimelineEvents = (tasks: Task[]): TimelineEvent[] => {
 
 export function ProjectTimeline({ 
   project, 
-  tasks = [], 
-  events: externalEvents,
   currentUserId = "u1"
 }: ProjectTimelineProps) {
+  // Use standardized hooks
+  const { tasks, isLoading: tasksLoading, error: tasksError, refetch: refetchTasks } = useTasks({ projectId: project.id });
+  const { getTeamMemberById } = useTeam();
+
   // State
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [viewMode, setViewMode] = React.useState<'week' | 'month'>('week');
@@ -260,28 +264,24 @@ export function ProjectTimeline({
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<TimelineEvent | null>(null);
 
-  // Get tasks for current project from dummy data
-  const projectTasks = allTasks.filter(task => task.projectId === project.id);
-
-
-  // Initialize events once
-  React.useEffect(() => {
-    const taskEvents = tasksToTimelineEvents(projectTasks);
-    const projectEvents = externalEvents || mockEvents.filter(e => e.projectId === project.id);
-    const allEvents = [...projectEvents, ...taskEvents];
-    
-    console.log('ProjectTimeline - Task events created:', taskEvents);
-    console.log('ProjectTimeline - All events:', allEvents);
+  // Initialize events - optimized with useMemo
+  const allEvents = React.useMemo(() => {
+    const taskEvents = tasksToTimelineEvents(tasks);
+    const projectEvents = mockEvents.filter((e: TimelineEvent) => e.projectId === project.id);
+    const combinedEvents = [...projectEvents, ...taskEvents];
     
     // Sort events by start date
-    const sortedEvents = allEvents.sort((a, b) => 
+    return combinedEvents.sort((a: TimelineEvent, b: TimelineEvent) => 
       new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     );
-    
-    setEvents(sortedEvents);
-  }, []); // Empty dependency - only run once
+  }, [tasks, project.id]);
 
-  // Calendar calculations
+  // Update events when tasks change
+  React.useEffect(() => {
+    setEvents(allEvents);
+  }, [allEvents]);
+
+  // Calendar calculations - optimized with useMemo
   const calendarStart = React.useMemo(() => {
     if (viewMode === 'week') {
       return startOfWeek(currentDate, { weekStartsOn: 0 });
@@ -304,9 +304,7 @@ export function ProjectTimeline({
 
   // Event handlers
   const getEventsForDay = (day: Date) => {
-    const dayEvents = events.filter(event => isSameDay(parseISO(event.startDate), day));
-    console.log(`Events for ${format(day, 'yyyy-MM-dd')}:`, dayEvents);
-    return dayEvents;
+    return events.filter((event: TimelineEvent) => isSameDay(parseISO(event.startDate), day));
   };
 
   const handlePrevious = () => {
@@ -346,20 +344,24 @@ export function ProjectTimeline({
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    setEvents(prev => prev.filter(e => e.id !== eventId));
+    setEvents((prev: TimelineEvent[]) => prev.filter((e: TimelineEvent) => e.id !== eventId));
     setShowViewModal(false);
+    // TODO: Replace with actual API call
+    console.log('Delete event:', eventId);
   };
 
   const handleDuplicateEvent = (event: TimelineEvent) => {
-    const duplicatedEvent = {
+    const duplicatedEvent: TimelineEvent = {
       ...event,
       id: `tl-${Date.now()}`,
       title: `${event.title} (Copy)`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    setEvents(prev => [...prev, duplicatedEvent]);
+    setEvents((prev: TimelineEvent[]) => [...prev, duplicatedEvent]);
     setShowViewModal(false);
+    // TODO: Replace with actual API call
+    console.log('Duplicate event:', duplicatedEvent);
   };
 
   const handleCreateEvent = (eventData: Omit<TimelineEvent, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -369,14 +371,18 @@ export function ProjectTimeline({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    setEvents(prev => [...prev, newEvent].sort((a, b) => 
+    setEvents((prev: TimelineEvent[]) => [...prev, newEvent].sort((a: TimelineEvent, b: TimelineEvent) => 
       new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     ));
+    // TODO: Replace with actual API call
+    console.log('Create event:', newEvent);
   };
 
   const handleUpdateEvent = (updatedEvent: TimelineEvent) => {
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e)
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()));
+    setEvents((prev: TimelineEvent[]) => prev.map((e: TimelineEvent) => e.id === updatedEvent.id ? updatedEvent : e)
+      .sort((a: TimelineEvent, b: TimelineEvent) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()));
+    // TODO: Replace with actual API call
+    console.log('Update event:', updatedEvent);
   };
 
   // Calendar title
@@ -390,14 +396,14 @@ export function ProjectTimeline({
     }
   };
 
-  // Statistics for header
+  // Statistics for header - optimized with useMemo
   const taskStats = React.useMemo(() => {
-    const taskEvents = events.filter(e => e.isTask);
-    const overdueTasks = taskEvents.filter(e => e.status === 'overdue').length;
-    const dueTodayTasks = taskEvents.filter(e => 
+    const taskEvents = events.filter((e: TimelineEvent) => e.isTask);
+    const overdueTasks = taskEvents.filter((e: TimelineEvent) => e.status === 'overdue').length;
+    const dueTodayTasks = taskEvents.filter((e: TimelineEvent) => 
       isSameDay(parseISO(e.startDate), new Date())
     ).length;
-    const upcomingTasks = taskEvents.filter(e => 
+    const upcomingTasks = taskEvents.filter((e: TimelineEvent) => 
       e.status === 'scheduled' && !isSameDay(parseISO(e.startDate), new Date())
     ).length;
 
@@ -410,13 +416,13 @@ export function ProjectTimeline({
     
     return (
       <div className="grid grid-cols-7 gap-px bg-muted border rounded-xl overflow-hidden">
-        {weekDays.map((day) => (
+        {weekDays.map((day: string) => (
           <div key={day} className="bg-foreground p-2 text-center text-sm font-medium text-background">
             {day}
           </div>
         ))}
         
-        {calendarDays.map((day) => {
+        {calendarDays.map((day: Date) => {
           const dayEvents = getEventsForDay(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
           const isDayToday = isToday(day);
@@ -437,7 +443,7 @@ export function ProjectTimeline({
               </div>
               
               <div className="space-y-1">
-                {dayEvents.slice(0, 4).map((event) => {
+                {dayEvents.slice(0, 4).map((event: TimelineEvent) => {
                   const IconComponent = getEventTypeIcon(event.type);
                   const isOverdue = event.status === 'overdue';
                   const isUrgentTask = event.isTask && event.priority === 'critical'; // Since we map urgent to critical
@@ -496,18 +502,18 @@ export function ProjectTimeline({
     
     return (
       <div className="space-y-px border rounded-xl overflow-hidden bg-muted">
-        <div className="grid grid-cols-7 gap-px bg-muted">
-          {weekDays.map((day) => (
-            <div key={day} className="bg-muted p-2 text-center text-sm font-medium">
+        <div className="grid grid-cols-7 gap-px bg-foreground text-background">
+          {weekDays.map((day: string) => (
+            <div key={day} className="bg-foreground p-2 text-center text-sm font-medium">
               {day}
             </div>
           ))}
         </div>
         
         <div className="grid gap-px bg-gray-200 rounded-b-lg overflow-hidden">
-          {weeks.map((week, weekIndex) => (
+          {weeks.map((week: Date[], weekIndex: number) => (
             <div key={weekIndex} className="grid grid-cols-7 gap-px">
-              {week.map((day) => {
+              {week.map((day: Date) => {
                 const dayEvents = getEventsForDay(day);
                 const isCurrentMonth = isSameMonth(day, currentDate);
                 const isDayToday = isToday(day);
@@ -528,7 +534,7 @@ export function ProjectTimeline({
                     </div>
                     
                     <div className="space-y-1">
-                      {dayEvents.slice(0, 3).map((event) => {
+                      {dayEvents.slice(0, 3).map((event: TimelineEvent) => {
                         const IconComponent = getEventTypeIcon(event.type);
                         const isOverdue = event.status === 'overdue';
                         const isUrgentTask = event.isTask && event.priority === 'critical';
@@ -566,6 +572,36 @@ export function ProjectTimeline({
       </div>
     );
   };
+
+  // Handle loading and error states
+  if (tasksLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-medium">Project Timeline</h2>
+        </div>
+        <div className="text-center py-12">
+          <p>Loading timeline...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tasksError) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-medium">Project Timeline</h2>
+        </div>
+        <div className="text-center py-12">
+          <p className="text-red-600">Error loading timeline: {tasksError}</p>
+          <Button onClick={refetchTasks} variant="outline" className="mt-2">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

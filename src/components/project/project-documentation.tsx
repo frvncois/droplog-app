@@ -26,7 +26,6 @@ import {
   MoreVertical,
   Eye,
   Search,
-  SortAsc,
   GripVertical,
   Edit,
   Copy,
@@ -54,127 +53,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Project,
-  getTeamMemberById 
-} from "@/lib/utils/dummy-data";
+
+// Import standardized hooks and types
+import { useDocumentation } from "@/hooks/use-documentation";
+import { useTeam } from "@/hooks/use-team";
+import type { 
+  Project, 
+  Documentation,
+  TeamMember
+} from "@/lib/types";
 import { formatRelativeTime } from "@/lib/utils";
 
 // Import the modal components
 import { DocumentationCreateModal } from "@/components/modals/documentation-create-modal";
 import { DocumentationEditModal } from "@/components/modals/documentation-edit-modal";
 import { DocumentationSheetModal } from "@/components/modals/documentation-sheet-modal";
-
-// Documentation interface
-interface Documentation {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  type: string;
-  status: string;
-  author: string;
-  projectId: string;
-  createdAt: string;
-  updatedAt: string;
-  tags: string[];
-  wordCount: number;
-  readTime: number;
-}
-
-// Mock project documentation data
-const getProjectDocumentation = (projectId: string): Documentation[] => [
-  {
-    id: "doc1",
-    title: "Project Setup Guide",
-    description: "Complete guide for setting up this project with all necessary configurations and dependencies.",
-    category: "Setup",
-    type: "Guide",
-    status: "published",
-    author: "u1",
-    projectId: projectId,
-    createdAt: "2025-09-01T10:00:00Z",
-    updatedAt: "2025-09-10T14:30:00Z",
-    tags: ["setup", "getting-started", "configuration"],
-    wordCount: 1250,
-    readTime: 5
-  },
-  {
-    id: "doc2",
-    title: "API Documentation",
-    description: "Comprehensive RESTful API endpoints documentation with examples and response formats.",
-    category: "API",
-    type: "Reference",
-    status: "published",
-    author: "u2",
-    projectId: projectId,
-    createdAt: "2025-08-15T09:00:00Z",
-    updatedAt: "2025-09-08T16:45:00Z",
-    tags: ["api", "endpoints", "integration"],
-    wordCount: 3200,
-    readTime: 12
-  },
-  {
-    id: "doc3",
-    title: "Design System",
-    description: "Brand guidelines, color palettes, typography, and component library specifications.",
-    category: "Design",
-    type: "Guidelines",
-    status: "draft",
-    author: "u3",
-    projectId: projectId,
-    createdAt: "2025-09-05T11:20:00Z",
-    updatedAt: "2025-09-11T10:15:00Z",
-    tags: ["design", "branding", "components"],
-    wordCount: 890,
-    readTime: 4
-  },
-  {
-    id: "doc4",
-    title: "Deployment Guide",
-    description: "Step-by-step deployment procedures for production and staging environments.",
-    category: "Operations",
-    type: "Guide",
-    status: "review",
-    author: "u2",
-    projectId: projectId,
-    createdAt: "2025-09-07T13:30:00Z",
-    updatedAt: "2025-09-09T09:20:00Z",
-    tags: ["deployment", "operations", "production"],
-    wordCount: 1800,
-    readTime: 7
-  },
-  {
-    id: "doc5",
-    title: "Testing Guidelines",
-    description: "Best practices for unit testing, integration testing, and end-to-end testing strategies.",
-    category: "Development",
-    type: "Guidelines",
-    status: "published",
-    author: "u1",
-    projectId: projectId,
-    createdAt: "2025-08-20T14:00:00Z",
-    updatedAt: "2025-09-05T11:30:00Z",
-    tags: ["testing", "quality", "automation"],
-    wordCount: 2100,
-    readTime: 8
-  },
-  {
-    id: "doc6",
-    title: "Security Checklist",
-    description: "Essential security measures and compliance requirements for the application.",
-    category: "Security",
-    type: "Checklist",
-    status: "review",
-    author: "u3",
-    projectId: projectId,
-    createdAt: "2025-09-03T16:45:00Z",
-    updatedAt: "2025-09-08T09:15:00Z",
-    tags: ["security", "compliance", "audit"],
-    wordCount: 950,
-    readTime: 4
-  }
-];
 
 const getCategoryIcon = (category: string) => {
   const icons: Record<string, string> = {
@@ -199,17 +92,16 @@ const categoryOptions = [
   { value: "Security", label: "Security" },
 ];
 
-// Sort options
-const sortOptions = [
-  { value: "updatedAt", label: "Last Updated" },
-  { value: "createdAt", label: "Created Date" },
-  { value: "title", label: "Title A-Z" },
-  { value: "wordCount", label: "Word Count" },
-  { value: "readTime", label: "Read Time" },
-];
-
 // Draggable card component
-function DraggableCard({ doc, onAction }: { doc: Documentation; onAction: (action: string, doc: Documentation) => void }) {
+function DraggableCard({ 
+  doc, 
+  onAction, 
+  getTeamMemberById 
+}: { 
+  doc: Documentation; 
+  onAction: (action: string, doc: Documentation) => void;
+  getTeamMemberById: (id: string) => TeamMember | undefined;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: doc.id,
   });
@@ -297,7 +189,7 @@ function DraggableCard({ doc, onAction }: { doc: Documentation; onAction: (actio
                   <Avatar className="h-4 w-4">
                     <AvatarImage src={author.avatarUrl} />
                     <AvatarFallback className="text-[8px]">
-                      {author.name.split(" ").map(n => n[0]).join("")}
+                      {author.name.split(" ").map((n: string) => n[0]).join("")}
                     </AvatarFallback>
                   </Avatar>
                   <span>{author.name}</span>
@@ -319,12 +211,12 @@ function DraggableCard({ doc, onAction }: { doc: Documentation; onAction: (actio
 
 interface ProjectDocumentationProps {
   project: Project;
-  documentation?: Documentation[];
 }
 
-export function ProjectDocumentation({ project, documentation: externalDocumentation }: ProjectDocumentationProps) {
-  const originalDocumentation = React.useMemo(() => getProjectDocumentation(project.id), [project.id]);
-  const [data, setData] = React.useState(() => externalDocumentation || originalDocumentation);
+export function ProjectDocumentation({ project }: ProjectDocumentationProps) {
+  // Use standardized hooks
+  const { documentation, isLoading, error, refetch } = useDocumentation({ projectId: project.id });
+  const { getTeamMemberById } = useTeam();
 
   // Modal states
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
@@ -332,19 +224,9 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
   const [viewModalOpen, setViewModalOpen] = React.useState(false);
   const [selectedDocument, setSelectedDocument] = React.useState<Documentation | null>(null);
 
-  // Update data when external documentation changes
-  React.useEffect(() => {
-    if (externalDocumentation) {
-      setData(externalDocumentation);
-    } else {
-      setData(originalDocumentation);
-    }
-  }, [externalDocumentation, originalDocumentation]);
-
   // Filter states
   const [searchTerm, setSearchTerm] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
-  const [sortBy, setSortBy] = React.useState("updatedAt");
 
   // Drag and drop setup
   const sortableId = React.useId();
@@ -356,60 +238,41 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
   );
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
+    () => documentation?.map(({ id }) => id) || [],
+    [documentation]
   );
 
   // Handle drag end
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
-      });
+      // TODO: Replace with actual API call to update order
+      console.log('Reorder documentation:', { active: active.id, over: over.id });
+      refetch(); // Refresh data after reorder
     }
   }
 
-  // Filter and sort documentation
-  const filteredAndSortedDocumentation = React.useMemo(() => {
-    let filtered = data;
+  // Filter documentation - optimized with useMemo
+  const filteredDocumentation = React.useMemo(() => {
+    let filtered = documentation;
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(doc =>
-        doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      const lowercaseSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter((doc: Documentation) =>
+        doc.title.toLowerCase().includes(lowercaseSearchTerm) ||
+        doc.description.toLowerCase().includes(lowercaseSearchTerm) ||
+        doc.tags.some((tag: string) => tag.toLowerCase().includes(lowercaseSearchTerm))
       );
     }
 
     // Apply category filter
     if (categoryFilter !== "all") {
-      filtered = filtered.filter(doc => doc.category === categoryFilter);
+      filtered = filtered.filter((doc: Documentation) => doc.category === categoryFilter);
     }
 
-    // Apply sorting
-    filtered = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case "title":
-          return a.title.localeCompare(b.title);
-        case "createdAt":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case "updatedAt":
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-        case "wordCount":
-          return b.wordCount - a.wordCount;
-        case "readTime":
-          return b.readTime - a.readTime;
-        default:
-          return 0;
-      }
-    });
-
     return filtered;
-  }, [data, searchTerm, categoryFilter, sortBy]);
+  }, [documentation, searchTerm, categoryFilter]);
 
   // Handle document actions
   const handleDocumentAction = (action: string, document: Documentation) => {
@@ -427,34 +290,35 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
         // You could add a toast notification here
         break;
       case 'duplicate':
-        const duplicatedDoc = {
-          ...document,
-          id: `doc-${Date.now()}`,
-          title: `${document.title} (Copy)`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        setData(prev => [...prev, duplicatedDoc]);
+        // TODO: Replace with actual API call
+        console.log('Duplicate document:', document.title);
+        refetch(); // Refresh data after duplication
         break;
       case 'delete':
         if (confirm(`Are you sure you want to delete "${document.title}"?`)) {
-          setData(prev => prev.filter(doc => doc.id !== document.id));
+          // TODO: Replace with actual API call
+          console.log('Delete document:', document.title);
+          refetch(); // Refresh data after deletion
         }
         break;
     }
   };
 
   // Handle document creation
-  const handleDocumentCreate = (newDocument: Documentation) => {
-    setData(prev => [...prev, newDocument]);
+  const handleDocumentCreate = (newDocument: Omit<Documentation, 'id' | 'createdAt' | 'updatedAt'>) => {
+    // TODO: Replace with actual API call
+    console.log('Create document:', newDocument);
     setCreateModalOpen(false);
+    refetch(); // Refresh data after creation
   };
 
   // Handle document update
   const handleDocumentUpdate = (updatedDocument: Documentation) => {
-    setData(prev => prev.map(doc => doc.id === updatedDocument.id ? updatedDocument : doc));
+    // TODO: Replace with actual API call
+    console.log('Update document:', updatedDocument);
     setEditModalOpen(false);
     setSelectedDocument(null);
+    refetch(); // Refresh data after update
   };
 
   // Handle modal actions from view modal
@@ -467,21 +331,18 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
         break;
       case 'delete':
         if (confirm(`Are you sure you want to delete "${document.title}"?`)) {
-          setData(prev => prev.filter(doc => doc.id !== document.id));
+          // TODO: Replace with actual API call
+          console.log('Delete document from view modal:', document.title);
           setViewModalOpen(false);
           setSelectedDocument(null);
+          refetch(); // Refresh data after deletion
         }
         break;
       case 'duplicate':
-        const duplicatedDoc = {
-          ...document,
-          id: `doc-${Date.now()}`,
-          title: `${document.title} (Copy)`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        setData(prev => [...prev, duplicatedDoc]);
+        // TODO: Replace with actual API call
+        console.log('Duplicate document from view modal:', document.title);
         setViewModalOpen(false);
+        refetch(); // Refresh data after duplication
         break;
     }
   };
@@ -530,39 +391,24 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
               ))}
             </SelectContent>
           </Select>
-
-          {/* Sort */}
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[200px]">
-              <SortAsc className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
       {/* Documentation Grid */}
-      {filteredAndSortedDocumentation.length === 0 ? (
+      {filteredDocumentation.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {data.length === 0 ? 'No documentation yet' : 'No documentation matches your search'}
+              {documentation.length === 0 ? 'No documentation yet' : 'No documentation matches your search'}
             </h3>
             <p className="text-gray-500 mb-4">
-              {data.length === 0 
+              {documentation.length === 0 
                 ? 'Create your first document to get started'
                 : 'Try adjusting your search or filters'
               }
             </p>
-            {data.length === 0 && (
+            {documentation.length === 0 && (
               <Button onClick={() => setCreateModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create First Document
@@ -582,11 +428,12 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
             strategy={rectSortingStrategy}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredAndSortedDocumentation.map((doc) => (
+              {filteredDocumentation.map((doc) => (
                 <DraggableCard
                   key={doc.id}
                   doc={doc}
                   onAction={handleDocumentAction}
+                  getTeamMemberById={getTeamMemberById}
                 />
               ))}
             </div>
@@ -614,9 +461,9 @@ export function ProjectDocumentation({ project, documentation: externalDocumenta
         open={viewModalOpen}
         onOpenChange={setViewModalOpen}
         document={selectedDocument}
-        onEdit={(doc) => handleViewModalAction('edit', doc)}
-        onDelete={(docId) => handleViewModalAction('delete', selectedDocument!)}
-        onDuplicate={(doc) => handleViewModalAction('duplicate', doc)}
+        onEdit={(doc: Documentation) => handleViewModalAction('edit', doc)}
+        onDelete={(docId: string) => handleViewModalAction('delete', selectedDocument!)}
+        onDuplicate={(doc: Documentation) => handleViewModalAction('duplicate', doc)}
       />
     </div>
   );

@@ -37,7 +37,9 @@ import {
   Mail,
   Calendar
 } from "lucide-react";
-import { TeamMember } from "@/lib/utils/dummy-data";
+
+// Import from centralized types
+import type { TeamMember } from "@/lib/types";
 import { format } from "date-fns";
 
 const getRoleBadgeColor = (role: string) => {
@@ -102,7 +104,7 @@ export function TeamAddModal({
   // Filter available members based on search term
   const filteredMembers = React.useMemo(() => {
     if (!searchTerm) return availableMembers;
-    return availableMembers.filter(member =>
+    return availableMembers.filter((member: TeamMember) =>
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.role.toLowerCase().includes(searchTerm.toLowerCase())
@@ -111,7 +113,7 @@ export function TeamAddModal({
 
   // Get selected member data
   const selectedMemberData = React.useMemo(() => {
-    return availableMembers.find(member => member.id === selectedMember);
+    return availableMembers.find((member: TeamMember) => member.id === selectedMember);
   }, [availableMembers, selectedMember]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -175,7 +177,7 @@ export function TeamAddModal({
             <ScrollArea className="h-64 border rounded-lg">
               {filteredMembers.length > 0 ? (
                 <div className="p-2 space-y-2">
-                  {filteredMembers.map((member) => (
+                  {filteredMembers.map((member: TeamMember) => (
                     <Card 
                       key={member.id} 
                       className={`cursor-pointer transition-all ${
@@ -190,7 +192,7 @@ export function TeamAddModal({
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={member.avatarUrl} />
                             <AvatarFallback>
-                              {member.name.split(" ").map(n => n[0]).join("")}
+                              {member.name.split(" ").map((n: string) => n[0]).join("")}
                             </AvatarFallback>
                           </Avatar>
                           
@@ -242,7 +244,7 @@ export function TeamAddModal({
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={selectedMemberData.avatarUrl} />
                       <AvatarFallback className="text-lg">
-                        {selectedMemberData.name.split(" ").map(n => n[0]).join("")}
+                        {selectedMemberData.name.split(" ").map((n: string) => n[0]).join("")}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">

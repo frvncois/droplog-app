@@ -9,10 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
-  Calendar, 
-  User, 
-  Flag, 
-  Clock, 
   ExternalLink, 
   Users, 
   CheckSquare,
@@ -22,13 +18,10 @@ import {
   Info
 } from "lucide-react";
 import { format } from "date-fns";
-import { 
-  Project, 
-  getTasksByProjectId, 
-  getTeamMemberById, 
-  getAssetsByProjectId,
-  getContentByProjectId
-} from "@/lib/utils/dummy-data";
+import { Project } from "@/lib/types";
+import { useTasks } from "@/hooks/use-tasks";
+import { useAssets } from "@/hooks/use-assets";
+import { useTeam } from "@/hooks/use-team";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface ProjectOverviewModalProps {
@@ -42,21 +35,101 @@ const getStatusColor = (status: string) => {
     case "active": return "bg-green-100 text-green-800";
     case "completed": return "bg-blue-100 text-blue-800";
     case "archived": return "bg-gray-100 text-gray-800";
+    case "on_hold": return "bg-yellow-100 text-yellow-800";
     default: return "bg-gray-100 text-gray-800";
   }
 };
 
-export function ProjectOverviewModal({ project, open, onOpenChange }: ProjectOverviewModalProps) {
-  if (!project) return null;
-
-  const projectTasks = getTasksByProjectId(project.id);
-  const projectAssets = getAssetsByProjectId(project.id);
-  const projectContent = getContentByProjectId(project.id);
+// Memoized team member component
+const TeamMember = React.memo(function TeamMember({ 
+  memberId, 
+  getTeamMemberById 
+}: { 
+  memberId: string;
+  getTeamMemberById: (id: string) => any;
+}) {
+  const member = getTeamMemberById(memberId);
   
-  const completedTasks = projectTasks.filter(task => task.status === "completed");
-  const activeTasks = projectTasks.filter(task => task.status !== "completed");
-  const progressPercentage = projectTasks.length > 0 ? 
-    Math.round((completedTasks.length / projectTasks.length) * 100) : 0;
+  if (!member) return null;
+  
+  return (
+    <div className="flex items-center gap-3">
+      <Avatar className="h-8 w-8">
+        <AvatarImage src={member.avatarUrl} />
+        <AvatarFallback className="text-sm">
+          {member.name.split(" ").map((n: string) => n[0]).join("")}
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <div className="font-medium text-sm">{member.name}</div>
+        <div className="text-xs text-muted-foreground">{member.role}</div>
+      </div>
+    </div>
+  );
+});
+
+// Memoized asset item component
+const AssetItem = React.memo(function AssetItem({ 
+  asset 
+}: { 
+  asset: { id: string; title: string } 
+}) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <div className="w-2 h-2 bg-blue-500 rounded-full" />
+      <span className="truncate">{asset.title}</span>
+    </div>
+  );
+});
+
+// Memoized content item component
+const ContentItem = React.memo(function ContentItem({ 
+  content 
+}: { 
+  content: { id: string; title: string; status: string } 
+}) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="truncate">{content.title}</span>
+      <Badge variant="outline" className="text-xs">
+        {content.status}
+      </Badge>
+    </div>
+  );
+});
+
+export function ProjectOverviewModal({ project, open, onOpenChange }: ProjectOverviewModalProps) {
+  // Only fetch data when modal is open and project exists
+  const { tasks } = useTasks(open && project ? { projectId: project.id } : {});
+  const { assets } = useAssets(open && project ? { projectId: project.id } : {});
+  const { getTeamMemberById } = useTeam();
+
+  // Memoize expensive calculations
+  const projectStats = React.useMemo(() => {
+    if (!project || !open) return null;
+
+    const projectTasks = tasks.filter(task => task.projectId === project.id);
+    const completedTasks = projectTasks.filter(task => task.status === "completed");
+    const activeTasks = projectTasks.filter(task => task.status !== "completed");
+    const progressPercentage = projectTasks.length > 0 ? 
+      Math.round((completedTasks.length / projectTasks.length) * 100) : 0;
+
+    return {
+      totalTasks: projectTasks.length,
+      completedTasks: completedTasks.length,
+      activeTasks: activeTasks.length,
+      progressPercentage
+    };
+  }, [project, tasks, open]);
+
+  // Memoize project assets
+  const projectAssets = React.useMemo(() => {
+    if (!project || !open) return [];
+    return assets.filter(asset => asset.projectId === project.id);
+  }, [project, assets, open]);
+
+  // Early return if no project
+  if (!project) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -129,45 +202,47 @@ export function ProjectOverviewModal({ project, open, onOpenChange }: ProjectOve
           </Card>
 
           {/* Progress Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CheckSquare className="h-5 w-5" />
-                Progress Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">{projectTasks.length}</div>
-                    <div className="text-sm text-muted-foreground">Total Tasks</div>
+          {projectStats && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5" />
+                  Progress Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">{projectStats.totalTasks}</div>
+                      <div className="text-sm text-muted-foreground">Total Tasks</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-600">{projectStats.completedTasks}</div>
+                      <div className="text-sm text-muted-foreground">Completed</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-orange-600">{projectStats.activeTasks}</div>
+                      <div className="text-sm text-muted-foreground">Active</div>
+                    </div>
                   </div>
+                  
                   <div>
-                    <div className="text-2xl font-bold text-green-600">{completedTasks.length}</div>
-                    <div className="text-sm text-muted-foreground">Completed</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-orange-600">{activeTasks.length}</div>
-                    <div className="text-sm text-muted-foreground">Active</div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Progress</span>
+                      <span>{projectStats.progressPercentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${projectStats.progressPercentage}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-                
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Progress</span>
-                    <span>{progressPercentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${progressPercentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Team Members */}
           {project.assignedTo && project.assignedTo.length > 0 && (
@@ -180,25 +255,13 @@ export function ProjectOverviewModal({ project, open, onOpenChange }: ProjectOve
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {project.assignedTo.map((memberId) => {
-                    const member = getTeamMemberById(memberId);
-                    if (!member) return null;
-                    
-                    return (
-                      <div key={memberId} className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={member.avatarUrl} />
-                          <AvatarFallback className="text-sm">
-                            {member.name.split(" ").map(n => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium text-sm">{member.name}</div>
-                          <div className="text-xs text-muted-foreground">{member.role}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {project.assignedTo.map((memberId) => (
+                    <TeamMember 
+                      key={memberId} 
+                      memberId={memberId} 
+                      getTeamMemberById={getTeamMemberById}
+                    />
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -216,10 +279,7 @@ export function ProjectOverviewModal({ project, open, onOpenChange }: ProjectOve
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   {projectAssets.slice(0, 4).map((asset) => (
-                    <div key={asset.id} className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                      <span className="truncate">{asset.title}</span>
-                    </div>
+                    <AssetItem key={asset.id} asset={asset} />
                   ))}
                   {projectAssets.length > 4 && (
                     <div className="text-sm text-muted-foreground">
@@ -231,46 +291,21 @@ export function ProjectOverviewModal({ project, open, onOpenChange }: ProjectOve
             </Card>
           )}
 
-          {/* Content Summary */}
-          {projectContent.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Content ({projectContent.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {projectContent.slice(0, 3).map((content) => (
-                    <div key={content.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate">{content.title}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {content.status}
-                      </Badge>
-                    </div>
-                  ))}
-                  {projectContent.length > 3 && (
-                    <div className="text-sm text-muted-foreground">
-                      +{projectContent.length - 3} more content items
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           <Separator />
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            <Button className="flex-1">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open Project
+            <Button className="flex-1" asChild>
+              <a href={`/app/projects/${project.id}`}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Project
+              </a>
             </Button>
-            <Button variant="outline" className="flex-1">
-              <FileText className="h-4 w-4 mr-2" />
-              View Tasks
+            <Button variant="outline" className="flex-1" asChild>
+              <a href={`/app/projects/${project.id}/tasks`}>
+                <FileText className="h-4 w-4 mr-2" />
+                View Tasks
+              </a>
             </Button>
           </div>
         </div>

@@ -1,7 +1,8 @@
 // app/projects/[id]/page.tsx
+"use client";
 
-import { notFound } from "next/navigation";
-import { getProjectById } from "@/lib/utils/dummy-data";
+import React from "react";
+import { useProject } from "@/hooks/use-projects";
 import { ProjectHeader } from "@/components/project/project-header";
 import { ProjectTabs } from "@/components/project/project-tabs";
 
@@ -9,13 +10,16 @@ interface ProjectPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
-  const { id } = await params;
-  const project = getProjectById(id);
+export default function ProjectPage({ params }: ProjectPageProps) {
+  // Note: In Next.js 15, we need to handle the Promise params
+  // For now, we'll extract the id synchronously (this might need adjustment based on your Next.js setup)
+  const [id, setId] = React.useState<string | null>(null);
+  
+  React.useEffect(() => {
+    params.then(({ id }) => setId(id));
+  }, [params]);
 
-  if (!project) {
-    notFound();
-  }
+  const { project } = useProject(id || "");
 
   return (
     <div className="space-y-6 p-6">
