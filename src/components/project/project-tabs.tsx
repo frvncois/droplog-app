@@ -36,14 +36,14 @@ import {
 import { Project } from "@/lib/types";
 
 interface ProjectTabsProps {
-  project?: Project;
+  projectId: string;
   currentUserId?: string;
 }
 
-export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps) {
+export function ProjectTabs({ projectId, currentUserId = "u1" }: ProjectTabsProps) {
   const [activeTab, setActiveTab] = useState("overview");
 
-  if (!project) {
+  if (!projectId) {
     return null;
   }
 
@@ -61,7 +61,7 @@ export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps)
         break;
       case "delete":
         // Handle delete project logic here
-        console.log("Delete project:", project.id);
+        console.log("Delete project:", projectId);
         break;
       default:
         break;
@@ -127,39 +127,35 @@ export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps)
       </TabsList>
 
       <TabsContent value="overview">
-        <ProjectOverview projectId={project.id} />
+        <ProjectOverview projectId={projectId} />
       </TabsContent>
 
       <TabsContent value="timeline">
-        <ProjectTimeline
-          project={project}
-          currentUserId={currentUserId}
-        />
+        <ProjectTimeline projectId={projectId} currentUserId={currentUserId} />
       </TabsContent>
 
       <TabsContent value="tasks">
-        <ProjectTasksList projectId={project.id} />
+        <ProjectTasksList projectId={projectId} />
       </TabsContent>
 
       <TabsContent value="assets">
-        <ProjectAssetsList projectId={project.id} />
+        <ProjectAssetsList projectId={projectId} />
       </TabsContent>
 
       <TabsContent value="content">
-        <ProjectContentList projectId={project.id} />
+        <ProjectContentList projectId={projectId} />
       </TabsContent>
 
       <TabsContent value="documentation">
-        <ProjectDocumentation projectId={project.id} />
+        <ProjectDocumentation projectId={projectId} />
       </TabsContent>
 
       <TabsContent value="team">
-        <ProjectTeamList projectId={project.id} />
+        <ProjectTeamList projectId={projectId} />
       </TabsContent>
 
-
       <TabsContent value="settings">
-        <ProjectSettings projectId={project.id} />
+        <ProjectSettings projectId={projectId} />
       </TabsContent>
     </Tabs>
   );

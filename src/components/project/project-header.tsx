@@ -16,15 +16,44 @@ import {
   FileImage,
   FileText,
 } from "lucide-react";
-import { Project } from "@/lib/types";
+import { useProject } from "@/hooks/use-projects";
 
 interface ProjectHeaderProps {
-  project?: Project;
+  projectId: string; // Changed from project?: Project
 }
 
-export function ProjectHeader({ project }: ProjectHeaderProps) {
+export function ProjectHeader({ projectId }: ProjectHeaderProps) {
+  const { project, isLoading, error } = useProject(projectId);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-between">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-64 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-96"></div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="h-9 bg-gray-200 rounded w-24"></div>
+          <div className="h-9 bg-gray-200 rounded w-20"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <p className="text-red-600">Error loading project: {error}</p>
+      </div>
+    );
+  }
+
   if (!project) {
-    return null;
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <p className="text-yellow-600">Project not found</p>
+      </div>
+    );
   }
 
   return (

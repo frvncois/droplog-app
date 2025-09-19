@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 // Import standardized hooks and types
 import { useTasks } from "@/hooks/use-tasks";
 import { useTeam } from "@/hooks/use-team";
+import { useProject } from "@/hooks/use-projects";
 import type { 
   Project, 
   Task,
@@ -82,7 +83,7 @@ interface TimelineEvent {
 
 // Props interface
 interface ProjectTimelineProps {
-  project: Project;
+  projectId: string;
   currentUserId?: string;
 }
 
@@ -245,12 +246,15 @@ const tasksToTimelineEvents = (tasks: Task[]): TimelineEvent[] => {
     });
 };
 
-export function ProjectTimeline({ 
-  project, 
+ export function ProjectTimeline({
+  projectId, // Changed from project
   currentUserId = "u1"
 }: ProjectTimelineProps) {
-  // Use standardized hooks
-  const { tasks, isLoading: tasksLoading, error: tasksError, refetch: refetchTasks } = useTasks({ projectId: project.id });
+  // Fetch project data inside the component
+  const { project, isLoading: projectLoading, error: projectError } = useProject(projectId);
+  
+  // Use projectId directly for tasks hook
+  const { tasks, isLoading: tasksLoading, error: tasksError, refetch: refetchTasks } = useTasks({ projectId });
   const { getTeamMemberById } = useTeam();
 
   // State
@@ -267,14 +271,14 @@ export function ProjectTimeline({
   // Initialize events - optimized with useMemo
   const allEvents = React.useMemo(() => {
     const taskEvents = tasksToTimelineEvents(tasks);
-    const projectEvents = mockEvents.filter((e: TimelineEvent) => e.projectId === project.id);
+    const projectEvents = mockEvents.filter((e: TimelineEvent) => e.projectId === projectId);
     const combinedEvents = [...projectEvents, ...taskEvents];
     
     // Sort events by start date
     return combinedEvents.sort((a: TimelineEvent, b: TimelineEvent) => 
       new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     );
-  }, [tasks, project.id]);
+  }, [tasks, projectId]);
 
   // Update events when tasks change
   React.useEffect(() => {
@@ -682,7 +686,7 @@ export function ProjectTimeline({
         onDelete={handleDeleteEvent}
         onDuplicate={handleDuplicateEvent}
       />
-
+{/*
       <EventCreateModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
@@ -692,6 +696,7 @@ export function ProjectTimeline({
         onCreateEvent={handleCreateEvent}
         onUpdateEvent={handleUpdateEvent}
       />
+      */}
     </div>
   );
 }
