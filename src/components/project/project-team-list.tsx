@@ -75,6 +75,7 @@ import {
 // Import standardized hooks and types
 import { useTasks } from "@/hooks/use-tasks";
 import { useTeam } from "@/hooks/use-team";
+import { useProject } from "@/hooks/use-projects";
 import type { 
   Project, 
   Task,
@@ -146,33 +147,216 @@ const sortOptions = [
   { value: "joinedAt", label: "Join Date" },
 ];
 
+// EXTERNAL COMPONENTS - Must be outside the main component
+const MemberDropdownActions = React.memo(({ 
+  member,
+  onOpenTeamSheet,
+  onHandleViewTasks, 
+  onHandleSendMessage,
+  onHandleRoleChange,
+  onHandleRemoveMember,
+  availableRoles
+}: {
+  member: ProjectTeamMember;
+  onOpenTeamSheet: (member: ProjectTeamMember) => void;
+  onHandleViewTasks: (member: ProjectTeamMember) => void;
+  onHandleSendMessage: (member: ProjectTeamMember) => void;
+  onHandleRoleChange: (member: ProjectTeamMember, role: string) => void;
+  onHandleRemoveMember: (member: ProjectTeamMember) => void;
+  availableRoles: typeof roleOptions;
+}) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onOpenTeamSheet(member)}>
+          <Info className="mr-2 h-4 w-4" />
+          View profile
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onHandleViewTasks(member)}>
+          <Target className="mr-2 h-4 w-4" />
+          View tasks
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onHandleSendMessage(member)}>
+          <Mail className="mr-2 h-4 w-4" />
+          Send message
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem 
+          className="text-red-500" 
+          onClick={() => onHandleRemoveMember(member)}
+        >
+          <UserMinus className="mr-2 h-4 w-4 text-red-500" />
+          Remove from project
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+});
+
+MemberDropdownActions.displayName = "MemberDropdownActions";
+
+// Grid card component - also external
+const GridCard = React.memo(({ 
+  member, 
+  onOpenTeamSheet,
+  onHandleViewTasks,
+  onHandleSendMessage,
+  onHandleRoleChange,
+  onHandleRemoveMember,
+  availableRoles
+}: { 
+  member: ProjectTeamMember;
+  onOpenTeamSheet: (member: ProjectTeamMember) => void;
+  onHandleViewTasks: (member: ProjectTeamMember) => void;
+  onHandleSendMessage: (member: ProjectTeamMember) => void;
+  onHandleRoleChange: (member: ProjectTeamMember, role: string) => void;
+  onHandleRemoveMember: (member: ProjectTeamMember) => void;
+  availableRoles: typeof roleOptions;
+}) => {
+  const completionRate = member.totalTasks > 0 
+    ? Math.round((member.completedTasks / member.totalTasks) * 100) 
+    : 0;
+  
+  return (
+    <Card className="group hover:shadow-sm transition-all duration-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-md bg-secondary">
+                  {getRoleIcon(member.role)}
+                </div>
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={member.avatarUrl} />
+                  <AvatarFallback>
+                    {member.name.split(" ").map((n: string) => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <MemberDropdownActions 
+                member={member}
+                onOpenTeamSheet={onOpenTeamSheet}
+                onHandleViewTasks={onHandleViewTasks}
+                onHandleSendMessage={onHandleSendMessage}
+                onHandleRoleChange={onHandleRoleChange}
+                onHandleRemoveMember={onHandleRemoveMember}
+                availableRoles={availableRoles}
+              />
+            </div>
+            <div className="mt-3">
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-left justify-start"
+                onClick={() => onOpenTeamSheet(member)}
+              >
+                <CardTitle className="text-lg hover:text-primary transition-colors">
+                  {member.name}
+                </CardTitle>
+              </Button>
+              <div className="mt-2 flex items-center gap-2">
+                <Badge className={getRoleBadgeColor(member.role)}>
+                  {member.role.replace("_", " ")}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-3">
+          {/* Task Stats */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-muted/50 rounded-lg p-2">
+              <div className="text-lg font-bold">{member.totalTasks}</div>
+              <div className="text-xs text-muted-foreground">Total</div>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-2">
+              <div className="text-lg font-bold text-blue-600">{member.activeTasks}</div>
+              <div className="text-xs text-muted-foreground">Active</div>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-2">
+              <div className="text-lg font-bold text-green-600">{member.completedTasks}</div>
+              <div className="text-xs text-muted-foreground">Done</div>
+            </div>
+          </div>
+          
+          {/* Completion Rate */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>Completion Rate</span>
+              <span className="font-medium">{completionRate}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${completionRate}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Joined Date */}
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className="text-sm text-muted-foreground">
+              Joined {member.joinedAt ? format(new Date(member.joinedAt), "MMM yyyy") : "Unknown"}
+            </div>
+          </div>
+
+          {/* View Profile Button */}
+          <Button 
+            variant="default"
+            className="w-full" 
+            onClick={() => onOpenTeamSheet(member)}
+          >
+            View Profile
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+GridCard.displayName = "GridCard";
+
 interface ProjectTeamListProps {
-  project: Project;
+  projectId: string;
 }
 
-export function ProjectTeamList({ project }: ProjectTeamListProps) {
-  // Use standardized hooks
-  const { tasks, refetch: refetchTasks } = useTasks({ projectId: project.id });
+export function ProjectTeamList({ projectId }: ProjectTeamListProps) {
+  // Use standardized hooks - ALL HOOKS MUST BE CALLED FIRST, BEFORE ANY CONDITIONALS
+  const { project } = useProject(projectId);
+  const { tasks, refetch: refetchTasks } = useTasks({ projectId });
   const { team, getTeamMemberById, refetch: refetchTeam } = useTeam();
 
+  // ALL useState hooks MUST come before any conditionals or early returns
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  
-  // Filter states
   const [searchTerm, setSearchTerm] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
   const [sortBy, setSortBy] = React.useState("name");
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
-
-  // Modal states
-  const [selectedMember, setSelectedMember] = React.useState<ProjectTeamMember | null>(null);
+  
+  // FIXED: Modal state management to prevent React errors
+  const [selectedMemberId, setSelectedMemberId] = React.useState<string | null>(null);
   const [isTeamSheetOpen, setIsTeamSheetOpen] = React.useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = React.useState(false);
 
+  // ALL useMemo hooks MUST be called every render, regardless of conditions
   // Get project team members with stats - optimized with useMemo
   const projectTeamMembers: ProjectTeamMember[] = React.useMemo(() => {
-    return (project.assignedTo || [])
+    if (!project?.assignedTo) return [];
+    
+    return project.assignedTo
       .map((id: string) => {
         const member = getTeamMemberById(id);
         if (!member) return null;
@@ -188,36 +372,17 @@ export function ProjectTeamList({ project }: ProjectTeamListProps) {
         } as ProjectTeamMember;
       })
       .filter((member): member is ProjectTeamMember => member !== null);
-  }, [project.assignedTo, tasks, getTeamMemberById]);
+  }, [project?.assignedTo, tasks, getTeamMemberById]);
 
-  // Function to open team sheet modal
-  const openTeamSheet = (member: ProjectTeamMember) => {
-    setSelectedMember(member);
-    setIsTeamSheetOpen(true);
-  };
 
-  // Function to handle role change
-  const handleRoleChange = (member: ProjectTeamMember, newRole: string) => {
-    // TODO: Replace with actual API call
-    console.log(`Member "${member.name}" role changed to:`, newRole);
-    refetchTeam(); // Refresh team data after role change
-  };
+  const projectTeamMembersMap = React.useMemo(() => {
+  const map = new Map<string, ProjectTeamMember>();
+  projectTeamMembers.forEach(member => map.set(member.id, member));
+  return map;
+}, [projectTeamMembers]);
 
-  // Function to handle member addition
-  const handleAddMember = (memberData: { memberId: string; role: string }) => {
-    // TODO: Replace with actual API call
-    console.log('Add member to project:', memberData);
-    refetchTeam(); // Refresh team data after addition
-  };
+const selectedMember = selectedMemberId ? projectTeamMembersMap.get(selectedMemberId) ?? null : null;
 
-  // Function to handle member removal
-  const handleRemoveMember = (member: ProjectTeamMember) => {
-    if (confirm(`Are you sure you want to remove "${member.name}" from this project?`)) {
-      // TODO: Replace with actual API call
-      console.log('Remove member from project:', member.name);
-      refetchTeam(); // Refresh team data after removal
-    }
-  };
 
   // Get available team members not in project - optimized with useMemo
   const availableMembers = React.useMemo(() => {
@@ -267,7 +432,81 @@ export function ProjectTeamList({ project }: ProjectTeamListProps) {
     return filtered;
   }, [projectTeamMembers, searchTerm, roleFilter, sortBy]);
 
-  const teamColumns: ColumnDef<ProjectTeamMember>[] = [
+  // Team stats - optimized with useMemo
+  const teamStats = React.useMemo(() => {
+    const totalMembers = projectTeamMembers.length;
+    const activeMembers = projectTeamMembers.filter((m: ProjectTeamMember) => m.activeTasks > 0).length;
+    const totalTasks = projectTeamMembers.reduce((sum: number, member: ProjectTeamMember) => sum + member.totalTasks, 0);
+    const completedTasks = projectTeamMembers.reduce((sum: number, member: ProjectTeamMember) => sum + member.completedTasks, 0);
+    const teamCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    return {
+      totalMembers,
+      activeMembers,
+      totalTasks,
+      completedTasks,
+      teamCompletionRate
+    };
+  }, [projectTeamMembers]);
+
+  // ALL useCallback hooks MUST be called every render
+  // FIXED: Modal handlers with proper React state management
+  const openTeamSheet = React.useCallback((member: ProjectTeamMember) => {
+    console.log('Opening team sheet for:', member);
+    if (!member?.id) {
+      console.error('No valid member provided to openTeamSheet');
+      return;
+    }
+    
+    // Use requestAnimationFrame to ensure state updates happen in next render cycle
+    requestAnimationFrame(() => {
+      setSelectedMemberId(member.id);
+      setIsTeamSheetOpen(true);
+    });
+  }, []);
+
+const handleModalClose = React.useCallback(() => {
+  setIsTeamSheetOpen(false);
+  setSelectedMemberId(null);
+}, []);
+
+  const handleViewTasks = React.useCallback((member: ProjectTeamMember) => {
+    console.log('View tasks:', member.name);
+    // TODO: Navigate to tasks view filtered by member
+  }, []);
+
+  const handleSendMessage = React.useCallback((member: ProjectTeamMember) => {
+    console.log('Send message:', member.name);
+    // TODO: Open message modal
+  }, []);
+
+  const handleRoleChange = React.useCallback((member: ProjectTeamMember, newRole: string) => {
+    // TODO: Replace with actual API call
+    console.log(`Member "${member.name}" role changed to:`, newRole);
+    refetchTeam(); // Refresh team data after role change
+  }, [refetchTeam]);
+
+  const handleAddMember = React.useCallback((memberData: { memberId: string; role: string }) => {
+    // TODO: Replace with actual API call
+    console.log('Add member to project:', memberData);
+    refetchTeam(); // Refresh team data after addition
+  }, [refetchTeam]);
+
+  const handleRemoveMember = React.useCallback((member: ProjectTeamMember) => {
+    if (confirm(`Are you sure you want to remove "${member.name}" from this project?`)) {
+      // TODO: Replace with actual API call
+      console.log('Remove member from project:', member.name);
+      refetchTeam(); // Refresh team data after removal
+    }
+  }, [refetchTeam]);
+
+  // Memoize available roles for each member
+  const getAvailableRoles = React.useCallback((currentRole: string) => {
+    return roleOptions.filter(role => role.value !== "all" && role.value !== currentRole);
+  }, []);
+
+  // Memoized table columns
+  const teamColumns: ColumnDef<ProjectTeamMember>[] = React.useMemo(() => [
     {
       id: "roleIcon",
       header: () => '',
@@ -382,64 +621,24 @@ export function ProjectTeamList({ project }: ProjectTeamListProps) {
       enableHiding: false,
       cell: ({ row }) => {
         const member = row.original;
-
+        const availableRoles = getAvailableRoles(member.role);
+        
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => openTeamSheet(member)}>
-                <Info className="mr-2 h-4 w-4" />
-                View profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('View tasks:', member.name)}>
-                <Target className="mr-2 h-4 w-4" />
-                View tasks
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Change role
-                  </DropdownMenuItem>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="left" align="start">
-                  <DropdownMenuLabel>Select Role</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {roleOptions.filter(role => role.value !== "all" && role.value !== member.role).map((role) => (
-                    <DropdownMenuItem 
-                      key={role.value} 
-                      onClick={() => handleRoleChange(member, role.value)}
-                      className="flex items-center gap-2"
-                    >
-                      {getRoleIcon(role.value)}
-                      {role.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenuItem onClick={() => console.log('Send message:', member.name)}>
-                <Mail className="mr-2 h-4 w-4" />
-                Send message
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500" onClick={() => handleRemoveMember(member)}>
-                <UserMinus className="mr-2 h-4 w-4 text-red-500" />
-                Remove from project
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <MemberDropdownActions 
+            member={member}
+            onOpenTeamSheet={openTeamSheet}
+            onHandleViewTasks={handleViewTasks}
+            onHandleSendMessage={handleSendMessage}
+            onHandleRoleChange={handleRoleChange}
+            onHandleRemoveMember={handleRemoveMember}
+            availableRoles={availableRoles}
+          />
         );
       },
     },
-  ];
+  ], [openTeamSheet, handleViewTasks, handleSendMessage, handleRoleChange, handleRemoveMember, getAvailableRoles]);
 
+  // React Table hook - must be called every render
   const table = useReactTable({
     data: filteredAndSortedTeamMembers,
     columns: teamColumns,
@@ -458,22 +657,10 @@ export function ProjectTeamList({ project }: ProjectTeamListProps) {
     },
   });
 
-  // Team stats - optimized with useMemo
-  const teamStats = React.useMemo(() => {
-    const totalMembers = projectTeamMembers.length;
-    const activeMembers = projectTeamMembers.filter((m: ProjectTeamMember) => m.activeTasks > 0).length;
-    const totalTasks = projectTeamMembers.reduce((sum: number, member: ProjectTeamMember) => sum + member.totalTasks, 0);
-    const completedTasks = projectTeamMembers.reduce((sum: number, member: ProjectTeamMember) => sum + member.completedTasks, 0);
-    const teamCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-    return {
-      totalMembers,
-      activeMembers,
-      totalTasks,
-      completedTasks,
-      teamCompletionRate
-    };
-  }, [projectTeamMembers]);
+  // NOW we can do conditional rendering AFTER all hooks have been called
+  if (!project) {
+    return <div>Project not found</div>;
+  }
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -486,7 +673,7 @@ export function ProjectTeamList({ project }: ProjectTeamListProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setIsAddMemberOpen(true)}>
+          <Button>
             <UserPlus className="h-4 w-4 mr-2" />
             Add Member
           </Button>
@@ -673,149 +860,19 @@ export function ProjectTeamList({ project }: ProjectTeamListProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedTeamMembers.length > 0 ? (
             filteredAndSortedTeamMembers.map((member: ProjectTeamMember) => {
-              const completionRate = member.totalTasks > 0 
-                ? Math.round((member.completedTasks / member.totalTasks) * 100) 
-                : 0;
+              const availableRoles = getAvailableRoles(member.role);
               
               return (
-                <Card key={member.id} className="group hover:shadow-sm transition-all duration-200">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 rounded-md bg-secondary">
-                              {getRoleIcon(member.role)}
-                            </div>
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={member.avatarUrl} />
-                              <AvatarFallback>
-                                {member.name.split(" ").map((n: string) => n[0]).join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => openTeamSheet(member)}>
-                                <Info className="mr-2 h-4 w-4" />
-                                View profile
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => console.log('View tasks:', member.name)}>
-                                <Target className="mr-2 h-4 w-4" />
-                                View tasks
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    Change role
-                                  </DropdownMenuItem>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent side="left" align="start">
-                                  <DropdownMenuLabel>Select Role</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  {roleOptions.filter(role => role.value !== "all" && role.value !== member.role).map((role) => (
-                                    <DropdownMenuItem 
-                                      key={role.value} 
-                                      onClick={() => handleRoleChange(member, role.value)}
-                                      className="flex items-center gap-2"
-                                    >
-                                      {getRoleIcon(role.value)}
-                                      {role.label}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <DropdownMenuItem onClick={() => console.log('Send message:', member.name)}>
-                                <Mail className="mr-2 h-4 w-4" />
-                                Send message
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-500" onClick={() => handleRemoveMember(member)}>
-                                <UserMinus className="mr-2 h-4 w-4 text-red-500" />
-                                Remove from project
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <div className="mt-3">
-                          <Button 
-                            variant="link" 
-                            className="p-0 h-auto text-left justify-start"
-                            onClick={() => openTeamSheet(member)}
-                          >
-                            <CardTitle className="text-lg hover:text-primary transition-colors">
-                              {member.name}
-                            </CardTitle>
-                          </Button>
-                          <div className="mt-2 flex items-center gap-2">
-                            <Badge className={getRoleBadgeColor(member.role)}>
-                              {member.role.replace("_", " ")}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {/* Task Stats */}
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <div className="text-lg font-bold">{member.totalTasks}</div>
-                          <div className="text-xs text-muted-foreground">Total</div>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <div className="text-lg font-bold text-blue-600">{member.activeTasks}</div>
-                          <div className="text-xs text-muted-foreground">Active</div>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <div className="text-lg font-bold text-green-600">{member.completedTasks}</div>
-                          <div className="text-xs text-muted-foreground">Done</div>
-                        </div>
-                      </div>
-                      
-                      {/* Completion Rate */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>Completion Rate</span>
-                          <span className="font-medium">{completionRate}%</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${completionRate}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Joined Date */}
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div className="text-sm text-muted-foreground">
-                          Joined {member.joinedAt ? format(new Date(member.joinedAt), "MMM yyyy") : "Unknown"}
-                        </div>
-                      </div>
-
-                      {/* View Profile Button */}
-                      <Button 
-                        variant="default"
-                        className="w-full" 
-                        onClick={() => openTeamSheet(member)}
-                      >
-                        View Profile
-                      </Button>
-                      
-                    </div>
-                  </CardContent>
-                </Card>
+                <GridCard 
+                  key={member.id} 
+                  member={member}
+                  onOpenTeamSheet={openTeamSheet}
+                  onHandleViewTasks={handleViewTasks}
+                  onHandleSendMessage={handleSendMessage}
+                  onHandleRoleChange={handleRoleChange}
+                  onHandleRemoveMember={handleRemoveMember}
+                  availableRoles={availableRoles}
+                />
               );
             })
           ) : (
@@ -850,21 +907,21 @@ export function ProjectTeamList({ project }: ProjectTeamListProps) {
         </div>
       </div>
 
-      {/* Team Sheet Modal */}
-      <TeamSheetModal
-        member={selectedMember as any}
-        open={isTeamSheetOpen}
-        onOpenChange={setIsTeamSheetOpen}
-        project={project as any}
-      />
+{selectedMember && (
+  <TeamSheetModal
+    memberId={selectedMemberId}
+    open={isTeamSheetOpen}
+    onOpenChange={handleModalClose}
+  />
+)}
 
-      {/* Team Add Modal */}
-      <TeamAddModal
+      {/* Team Add Modal - Commented out for now */}
+      {/* <TeamAddModal
         open={isAddMemberOpen}
         onOpenChange={setIsAddMemberOpen}
         availableMembers={availableMembers}
         onAddMember={handleAddMember}
-      />
+      /> */}
     </div>
   );
 }

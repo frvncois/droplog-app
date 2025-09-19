@@ -68,6 +68,7 @@ import {
 import { Project, Task } from "@/lib/types";
 import { useTasks } from "@/hooks/use-tasks";
 import { useTeam } from "@/hooks/use-team";
+import { useProject } from "@/hooks/use-projects";
 import { format } from "date-fns";
 import { formatRelativeTime } from "@/lib/utils";
 import { TaskSheetModal } from "@/components/modals/task-sheet-modal";
@@ -354,12 +355,13 @@ const TaskCard = React.memo(function TaskCard({
 });
 
 interface ProjectTasksListProps {
-  project?: Project;
+  projectId: string;
 }
 
-export function ProjectTasksList({ project }: ProjectTasksListProps) {
+export function ProjectTasksList({ projectId }: ProjectTasksListProps) {
   // Hooks
-  const { tasks } = useTasks(project ? { projectId: project.id } : {});
+  const { project } = useProject(projectId);
+  const { tasks } = useTasks({ projectId });
   const { getTeamMemberById } = useTeam();
 
   // Filter states

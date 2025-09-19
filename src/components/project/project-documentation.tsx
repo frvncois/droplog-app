@@ -210,12 +210,12 @@ function DraggableCard({
 }
 
 interface ProjectDocumentationProps {
-  project: Project;
+ projectId: string;
 }
 
-export function ProjectDocumentation({ project }: ProjectDocumentationProps) {
+export function ProjectDocumentation({ projectId }: ProjectDocumentationProps) {
   // Use standardized hooks
-  const { documentation, isLoading, error, refetch } = useDocumentation({ projectId: project.id });
+  const { documentation, isLoading, error, refetch } = useDocumentation({ projectId });
   const { getTeamMemberById } = useTeam();
 
   // Modal states
@@ -441,12 +441,12 @@ export function ProjectDocumentation({ project }: ProjectDocumentationProps) {
         </DndContext>
       )}
 
-      {/* Modal Components */}
+      {/* Modal Components 
       <DocumentationCreateModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onDocumentCreated={handleDocumentCreate}
-        projectId={project.id}
+        projectId={projectId}
       />
 
       <DocumentationEditModal
@@ -454,7 +454,7 @@ export function ProjectDocumentation({ project }: ProjectDocumentationProps) {
         onOpenChange={setEditModalOpen}
         document={selectedDocument}
         onSave={handleDocumentUpdate}
-        projectId={project.id}
+        projectId={projectId}
       />
 
       <DocumentationSheetModal
@@ -464,7 +464,7 @@ export function ProjectDocumentation({ project }: ProjectDocumentationProps) {
         onEdit={(doc: Documentation) => handleViewModalAction('edit', doc)}
         onDelete={(docId: string) => handleViewModalAction('delete', selectedDocument!)}
         onDuplicate={(doc: Documentation) => handleViewModalAction('duplicate', doc)}
-      />
+      />*/}
     </div>
   );
 }

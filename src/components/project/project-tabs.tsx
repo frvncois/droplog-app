@@ -127,7 +127,7 @@ export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps)
       </TabsList>
 
       <TabsContent value="overview">
-        <ProjectOverview project={project} />
+        <ProjectOverview projectId={project.id} />
       </TabsContent>
 
       <TabsContent value="timeline">
@@ -138,28 +138,28 @@ export function ProjectTabs({ project, currentUserId = "u1" }: ProjectTabsProps)
       </TabsContent>
 
       <TabsContent value="tasks">
-        <ProjectTasksList project={project} />
+        <ProjectTasksList projectId={project.id} />
       </TabsContent>
 
       <TabsContent value="assets">
-        <ProjectAssetsList project={project} />
+        <ProjectAssetsList projectId={project.id} />
       </TabsContent>
 
       <TabsContent value="content">
-        <ProjectContentList project={project} />
+        <ProjectContentList projectId={project.id} />
       </TabsContent>
 
       <TabsContent value="documentation">
-        <ProjectDocumentation project={project} />
+        <ProjectDocumentation projectId={project.id} />
       </TabsContent>
 
       <TabsContent value="team">
-        <ProjectTeamList project={project} />
+        <ProjectTeamList projectId={project.id} />
       </TabsContent>
 
 
       <TabsContent value="settings">
-        <ProjectSettings project={project} />
+        <ProjectSettings projectId={project.id} />
       </TabsContent>
     </Tabs>
   );

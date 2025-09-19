@@ -20,7 +20,8 @@ import {
   X
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import { Task, getTeamMemberById, getProjectById } from "@/lib/utils/dummy-data";
+import { Task, Project, TeamMember } from "@/lib/types";
+import { useTeam } from "@/hooks/use-team";
 
 interface TaskSheetModalProps {
   task: Task | null;

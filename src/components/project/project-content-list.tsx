@@ -158,12 +158,12 @@ const sortOptions = [
 ];
 
 interface ProjectContentListProps {
-  project: Project;
+  projectId: string;
 }
 
-export function ProjectContentList({ project }: ProjectContentListProps) {
+export function ProjectContentList({ projectId }: ProjectContentListProps) {
   // Use standardized hooks
-  const { content, isLoading, error, refetch } = useContent({ projectId: project.id });
+  const { content, isLoading, error, refetch } = useContent({ projectId });
   const { team, getTeamMemberById } = useTeam();
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -957,7 +957,7 @@ export function ProjectContentList({ project }: ProjectContentListProps) {
       <ContentCreateModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
-        projectId={project.id}
+        projectId={projectId}
         onCreateContent={handleCreateContent}
       />
 

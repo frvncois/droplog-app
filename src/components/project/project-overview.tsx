@@ -28,13 +28,14 @@ import { Project } from "@/lib/types";
 import { useTasks } from "@/hooks/use-tasks";
 import { useAssets } from "@/hooks/use-assets";
 import { useTeam } from "@/hooks/use-team";
+import { useProject } from "@/hooks/use-projects";
 import { useActivities } from "@/hooks/use-activities";
 import { format } from "date-fns";
 import Link from "next/link";
 import { ProjectWrittenSummary } from "@/components/project/project-written-summary";
 
 interface ProjectOverviewProps {
-  project?: Project;
+  projectId: string;
 }
 
 // Utility function to format file sizes
@@ -147,12 +148,13 @@ const TeamAvatars = React.memo(function TeamAvatars({
   );
 });
 
-export function ProjectOverview({ project }: ProjectOverviewProps) {
+export function ProjectOverview({ projectId }: ProjectOverviewProps) {
   // Hooks for data fetching
-  const { tasks } = useTasks(project ? { projectId: project.id } : {});
-  const { assets } = useAssets(project ? { projectId: project.id } : {});
+  const { project } = useProject(projectId);
+  const { tasks } = useTasks({ projectId });
+  const { assets } = useAssets({ projectId });
   const { getTeamMemberById } = useTeam();
-  const { activities } = useActivities(project ? { projectId: project.id, limit: 5 } : {});
+  const { activities } = useActivities({ projectId, limit: 5 });
 
   // Memoized calculations
   const projectStats = React.useMemo(() => {

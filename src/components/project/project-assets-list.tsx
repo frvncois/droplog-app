@@ -66,6 +66,7 @@ import {
 import { Project, Asset } from "@/lib/types";
 import { useAssets } from "@/hooks/use-assets";
 import { useTeam } from "@/hooks/use-team";
+import { useProject } from "@/hooks/use-projects";
 import { formatRelativeTime } from "@/lib/utils";
 import { AssetSheetModal } from "@/components/modals/asset-sheet-modal";
 import { AssetCreateModal } from "@/components/modals/asset-create-modal";
@@ -126,11 +127,12 @@ const sortOptions = [
 ];
 
 interface ProjectAssetsListProps {
-  project?: Project;
+  projectId: string;
 }
 
-export function ProjectAssetsList({ project }: ProjectAssetsListProps) {
-  const { assets } = useAssets(project ? { projectId: project.id } : {});
+export function ProjectAssetsList({ projectId }: ProjectAssetsListProps) {
+  const { project } = useProject(projectId);
+  const { assets } = useAssets({ projectId });
   const { getTeamMemberById } = useTeam();
 
   const [searchTerm, setSearchTerm] = React.useState("");
